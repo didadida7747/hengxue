@@ -857,6 +857,7 @@ function route() {
   let v = location.hash.replace('#/', '') || 'overview';
   if (!VIEWS.includes(v)) v = 'overview';
   currentView = v;
+  document.body.dataset.view = v;
   $$('.view').forEach(x => x.classList.add('hidden'));
   const el = $('#view-' + v);
   if (el) el.classList.remove('hidden');
@@ -1009,6 +1010,8 @@ function openBlockEdit(kind, id) {
 /* ── 事件绑定 ───────────────────────── */
 function bindEvents() {
   $$('.nav-btn, .bn-btn').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+  $('#avatar').addEventListener('click', () => go('me'));
+  $('#btnFab').addEventListener('click', () => openTaskDialog(null));
   document.addEventListener('click', e => {
     const g = e.target.closest('[data-goto]');
     if (g) go(g.dataset.goto);
