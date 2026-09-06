@@ -223,16 +223,26 @@
       <article class="card exam-manage">
         <div class="card-head">
           <div>
-            <span class="mono-label">EXAMS</span>
-            <h3>考试倒计时</h3>
+            <span class="mono-label">SCHOOL CALENDAR</span>
+            <h3>校历日程（考试 · 假期 · 开学）</h3>
           </div>
         </div>
         <div id="examList"></div>
         <div class="me-row" style="margin-top:12px">
-          <input id="examName" class="input" type="text" maxlength="20" placeholder="考试名，如：高等数学期中">
-          <input id="examDate" class="input" type="date" style="max-width:170px">
+          <input id="examName" class="input" type="text" maxlength="30" placeholder="日程名，如：期中考试">
+          <select id="eventKind" class="input" style="max-width:110px">
+            <option value="考试">考试</option>
+            <option value="假期">假期</option>
+            <option value="开学">开学</option>
+            <option value="校历">校历</option>
+          </select>
+        </div>
+        <div class="me-row" style="margin-top:8px">
+          <input id="examDate" class="input" type="date" style="max-width:180px">
+          <input id="eventEnd" class="input" type="date" style="max-width:180px" title="结束日期（可选）">
           <button class="btn btn-dark" id="btnAddExam">添加</button>
         </div>
+        <p class="hint">结束日期只填多天的事项（比如考试周、长假）；单天的留空即可。</p>
       </article>
     </section>
 
@@ -368,6 +378,14 @@
           <div class="me-row">
             <input id="nameInput" class="input" type="text" maxlength="12" value="符同学" placeholder="比如：符同学">
             <button class="btn btn-dark" id="btnSaveName">保存</button>
+          </div>
+        </article>
+
+        <article class="card me-card">
+          <div class="card-head"><div><h3>学期设置</h3><p class="me-sub">课表和“第几周”按「第一周周一」推算；假期/考试在「智能日历」里管理</p></div></div>
+          <div class="me-row">
+            <input id="semesterStart" class="input" type="date" style="max-width:220px">
+            <button class="btn btn-dark" id="btnSaveSemester">保存</button>
           </div>
         </article>
 
@@ -512,6 +530,16 @@
           <option value="100">100</option>
           <option value="120">120</option>
         </select>
+      </div>
+    </div>
+    <div class="f-grid hidden" id="blockClassRow">
+      <div>
+        <label class="f-label">任课教师</label>
+        <input class="input" name="teacher" type="text" maxlength="20" placeholder="比如：杜兰">
+      </div>
+      <div>
+        <label class="f-label">上课周次</label>
+        <input class="input" name="weeksText" type="text" maxlength="60" placeholder="如：1-7周,9-17周；双周写 2-6周（双）">
       </div>
     </div>
     <label class="f-check" id="blockRepeatRow"><input type="checkbox" name="repeat"> 每周重复（像课表一样，每周同一天出现）</label>
