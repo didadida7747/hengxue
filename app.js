@@ -184,7 +184,8 @@ function clientSeed() {
     tasks: [
       { id: 't1', title: '完成高等数学第三章习题', course: '高等数学', due: `${todayStr(0)}T23:59`, estimateMin: 90, priority: '高', done: false, doneAt: null },
       { id: 't2', title: '阅读《社会学概论》第五章', course: '社会学概论', due: `${todayStr(-1)}T18:00`, estimateMin: 60, priority: '中', done: false, doneAt: null },
-      { id: 't3', title: '准备英语演讲稿', course: '大学英语', due: `${todayStr(2)}T20:00`, estimateMin: 120, priority: '低', done: false, doneAt: null }
+      { id: 't3', title: '准备英语演讲稿', course: '大学英语', due: `${todayStr(2)}T20:00`, estimateMin: 120, priority: '低', done: false, doneAt: null },
+      { id: 't4', title: '背 20 个单词', course: '大学英语', repeat: 'daily', due: '', estimateMin: 20, priority: '中', doneDates: [todayStr(0)] }
     ],
     classes: buildTimetable(),
     blocks: [
@@ -192,6 +193,11 @@ function clientSeed() {
       { id: 'b2', name: '整理今日复盘', date: todayStr(0), start: '20:00', minutes: 30, kind: '复盘' }
     ],
     focusLog: { [todayStr(0)]: 150 },
+    focusSessions: [
+      { date: todayStr(0), start: '09:30', minutes: 40, task: '深度学习' },
+      { date: todayStr(0), start: '14:05', minutes: 60, task: '概率论习题' },
+      { date: todayStr(0), start: '20:10', minutes: 50, task: '阅读' }
+    ],
     events: DEFAULT_EVENTS,
     habits: [
       { id: 'h1', name: '背单词 20 个', emoji: '📚' },
@@ -249,6 +255,7 @@ async function loadAll() {
   state.habits = state.habits || [];
   state.habitLog = state.habitLog || {};
   state.pomodoroCount = state.pomodoroCount || 0;
+  state.focusSessions = state.focusSessions || [];
   state.events = state.events || [];
   if (migrateTimetable()) save();
 }
@@ -320,6 +327,7 @@ function nextUp() {
     return {
       label: it.kind === '课程' ? '下一节课' : '下一个安排',
       name: it.name,
+      ds: t,
       meta: `${it.start} – ${fmtClock(s + it.minutes)}${it.location ? ' · ' + it.location : ''}`
     };
   }
@@ -331,26 +339,44 @@ function nextUp() {
       return {
         label: i === 1 ? '明天' : `周${cnWeek(weekdayOf(ds))}`,
         name: it.name,
+        ds,
         meta: `${fmtDateLabel(ds)} ${it.start}${it.location ? ' · ' + it.location : ''}`
       };
     }
   }
-  return { label: '下一节课', name: '暂无安排', meta: '去「智能日历」添加吧' };
+  return { label: '下一节课', name: '暂无安排', ds: '', meta: '去「智能日历」添加吧' };
 }
 
 function dueTasksUpToToday() {
   const t = todayStr();
-  return state.tasks.filter(x => (x.due || '').slice(0, 10) && (x.due || '').slice(0, 10) <= t);
+  return state.tasks.filter(x => x.repeat !== 'daily' && (x.due || '').slice(0, 10) && (x.due || '').slice(0, 10) <= t);
+}
+
+/* 每日打卡任务的连续天数 */
+function dailyStreak(t) {
+  const done = (ds) => (t.doneDates || []).includes(ds);
+  let s = 0;
+  let i = done(todayStr()) ? 0 : 1; /* 今天还没打，则从昨天开始往回数 */
+  while (i <= 3660) {
+    if (done(todayStr(-i))) { s++; i++; }
+    else break;
+  }
+  return s;
 }
 
 function overviewStats() {
   const t = todayStr();
-  const due = dueTasksUpToToday();
-  const doneToday = due.filter(x => x.done && (x.doneAt || '').slice(0, 10) === t).length;
-  const undone = due.filter(x => !x.done).length;
-  const rate = due.length ? Math.round(doneToday / due.length * 100) : 0;
+  const singles = dueTasksUpToToday();
+  const dailies = state.tasks.filter(x => x.repeat === 'daily');
+  const singleDoneToday = singles.filter(x => x.done && (x.doneAt || '').slice(0, 10) === t).length;
+  const dailyDone = dailies.filter(x => (x.doneDates || []).includes(t)).length;
+  const planned = singles.length + dailies.length;
+  const doneToday = singleDoneToday + dailyDone;
+  const undone = singles.filter(x => !x.done).length + (dailies.length - dailyDone);
+  const rate = planned ? Math.round(doneToday / planned * 100) : 0;
   const focusMin = state.focusLog[t] || 0;
-  return { planned: due.length, undone, doneToday, rate, focusMin };
+  const focusCount = (state.focusSessions || []).filter(s => s.date === t).length;
+  return { planned, undone, doneToday, rate, focusMin, focusCount };
 }
 
 function momentum() {
@@ -361,7 +387,11 @@ function momentum() {
   });
   const done = rel.filter(x => x.done).length;
   const rate = rel.length ? done / rel.length : 0.5;
-  const hiDone = state.tasks.some(x => x.done && x.priority === '高' && (x.doneAt || '').slice(0, 10) === t);
+  const hiDone = state.tasks.some(x =>
+    x.priority === '高' &&
+    (x.repeat === 'daily'
+      ? (x.doneDates || []).includes(t)
+      : x.done && (x.doneAt || '').slice(0, 10) === t));
   const score = Math.max(5, Math.min(98, Math.round(30 + 55 * rate + (hiDone ? 12 : 0))));
   let hint;
   if (state.tasks.some(x => !x.done && x.priority === '高' && (x.due || '').slice(0, 10) <= t)) {
@@ -388,19 +418,25 @@ function updateChrome() {
 function taskRowHTML(t) {
   const course = t.course || '未分类';
   const col = colorFor(course);
+  const t0 = todayStr();
+  const isDaily = t.repeat === 'daily';
+  const doneToday = isDaily ? (t.doneDates || []).includes(t0) : t.done;
   const dueDate = (t.due || '').slice(0, 10);
   const dueTime = (t.due || '').slice(11, 16) || '';
-  const t0 = todayStr();
   const dateLabel = dueDate === t0 ? '今天' : dueDate === todayStr(-1) ? '昨天' : fmtDateLabel(dueDate);
-  const overdue = !t.done && dueDate && dueDate < t0;
+  const overdue = !isDaily && !t.done && dueDate && dueDate < t0;
   const pClass = t.priority === '高' ? 'pill-hi' : t.priority === '低' ? 'pill-lo' : 'pill-mid';
-  return `<div class="task-row ${t.done ? 'done' : ''}" data-id="${t.id}" style="--course-color:${col}">
-    <button class="ck" data-act="toggle" title="完成 / 取消完成">
+  const streak = isDaily ? dailyStreak(t) : 0;
+  const meta = isDaily
+    ? `🔁 每日打卡 · ${streak > 0 ? `已坚持 ${streak} 天` : '今天还没打卡'} · ${fmtDur(t.estimateMin || 0)}`
+    : `${esc(course)} · ${dateLabel} ${dueTime} · ${fmtDur(t.estimateMin || 0)}${overdue ? ' · <b class="overdue">已逾期</b>' : ''}`;
+  return `<div class="task-row ${doneToday ? 'done' : ''}" data-id="${t.id}" style="--course-color:${col}">
+    <button class="ck" data-act="toggle" title="${isDaily ? '打卡 / 取消打卡' : '完成 / 取消完成'}">
       <svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div class="task-main">
       <span class="task-title">${esc(t.title)}</span>
-      <span class="task-meta">${esc(course)} · ${dateLabel} ${dueTime} · ${fmtDur(t.estimateMin || 0)}${overdue ? ' · <b class="overdue">已逾期</b>' : ''}</span>
+      <span class="task-meta">${meta}</span>
     </div>
     <div class="task-ops">
       <span class="pill ${pClass}">${esc(t.priority || '中')}</span>
@@ -421,7 +457,17 @@ function bindTaskList(container) {
     const t = state.tasks.find(x => x.id === id);
     if (!t) return;
     if (act === 'toggle') {
-      if (t.done) {
+      if (t.repeat === 'daily') {
+        /* 每日打卡任务：按天记录完成 */
+        t.doneDates = t.doneDates || [];
+        const t0 = todayStr();
+        if (t.doneDates.includes(t0)) {
+          t.doneDates = t.doneDates.filter(d => d !== t0);
+        } else {
+          t.doneDates.push(t0);
+          toast('今日打卡完成 🔥');
+        }
+      } else if (t.done) {
         t.done = false;
         t.doneAt = null;
       } else {
@@ -467,7 +513,9 @@ function renderOverview() {
   $('#statTasks').textContent = S.undone;
   $('#statTasksSub').textContent = `共 ${S.planned} 项计划`;
   $('#statFocus').textContent = fmtH(S.focusMin);
-  $('#statFocusSub').textContent = S.focusMin ? `来自专注模式记录` : '去专注模式打卡吧';
+  $('#statFocusSub').textContent = S.focusCount
+    ? `${S.focusCount} 次专注 · 点开看明细`
+    : (S.focusMin ? '点开看明细' : '去专注模式打卡吧');
   $('#statRate').textContent = S.rate + '%';
   $('#statRateSub').textContent = S.doneToday ? `${S.doneToday} 项已完成` : '还没完成，加油';
 
@@ -509,11 +557,16 @@ function renderOverview() {
     $('#examBody').innerHTML = '<p class="exam-empty">还没有考试安排，<button class="linklike" data-goto="calendar">去添加</button></p>';
   }
 
-  /* 今天的任务 */
+  /* 今天的任务（每日打卡 + 到期单次任务） */
   const t0 = todayStr();
-  const list = dueTasksUpToToday().filter(x => !x.done || (x.doneAt || '').slice(0, 10) === t0)
-    .sort((a, b) => (a.done - b.done) || (a.due || '').localeCompare(b.due || ''));
-  $('#ttCount').textContent = `${list.filter(x => x.done).length}/${list.length}`;
+  const dailies = state.tasks.filter(x => x.repeat === 'daily');
+  const singles = dueTasksUpToToday()
+    .sort((a, b) => (a.due || '').localeCompare(b.due || ''));
+  const list = [...dailies, ...singles];
+  const doneCount = list.filter(x => x.repeat === 'daily'
+    ? (x.doneDates || []).includes(t0)
+    : x.done).length;
+  $('#ttCount').textContent = `${doneCount}/${list.length}`;
   $('#todayList').innerHTML = list.length
     ? list.map(taskRowHTML).join('')
     : '<p class="hint" style="margin-top:4px">今天没有待办，去「任务清单」计划点什么吧。</p>';
@@ -521,24 +574,29 @@ function renderOverview() {
 
 function renderTasks() {
   const t = todayStr();
-  const all = state.tasks.slice().sort((a, b) =>
-    ((a.done ? 1 : 0) - (b.done ? 1 : 0)) || (a.due || '').localeCompare(b.due || ''));
+  const all = state.tasks.slice();
+  const dailies = all.filter(x => x.repeat === 'daily');
+  const singles = all.filter(x => x.repeat !== 'daily')
+    .sort((a, b) => ((a.done ? 1 : 0) - (b.done ? 1 : 0)) || (a.due || '').localeCompare(b.due || ''));
 
   if (taskFilter === 'done') {
-    const done = all.filter(x => x.done);
+    const done = singles.filter(x => x.done);
     $('#taskList').innerHTML = done.length
       ? done.map(taskRowHTML).join('')
       : '<p class="hint">还没有已完成的任务。</p>';
     return;
   }
 
-  const open = all.filter(x => !x.done);
+  let html = '';
+  if (dailies.length) {
+    html += `<div class="group-head">每日打卡 · ${dailies.length}</div>` + dailies.map(taskRowHTML).join('');
+  }
+  const open = singles.filter(x => !x.done);
   const groups = [
     ['已逾期', 'overdue', open.filter(x => (x.due || '').slice(0, 10) && (x.due || '').slice(0, 10) < t)],
     ['今天', '', open.filter(x => (x.due || '').slice(0, 10) === t)],
     ['以后', '', open.filter(x => !(x.due || '').slice(0, 10) || (x.due || '').slice(0, 10) > t)]
   ];
-  let html = '';
   for (const [name, cls, arr] of groups) {
     if (arr.length) {
       html += `<div class="group-head ${cls}">${name} · ${arr.length}</div>` + arr.map(taskRowHTML).join('');
@@ -546,7 +604,7 @@ function renderTasks() {
   }
   if (!html) html = '<p class="hint">这里空空的。点右上角「＋ 新建任务」开始规划。</p>';
   if (taskFilter === 'all') {
-    const done = all.filter(x => x.done);
+    const done = singles.filter(x => x.done);
     if (done.length) html += `<div class="group-head">已完成 · ${done.length}</div>` + done.map(taskRowHTML).join('');
   }
   $('#taskList').innerHTML = html;
@@ -688,7 +746,12 @@ function renderLoad() {
 }
 
 /* ── 专注模式 ───────────────────────── */
-const F = { total: 25 * 60, left: 25 * 60, running: false, timer: null };
+const F = { total: 25 * 60, left: 25 * 60, running: false, timer: null, startClock: null };
+
+function currentTaskName() {
+  const sel = $('#focusTask');
+  return sel && sel.value ? sel.options[sel.selectedIndex].text : '';
+}
 
 let noiseNodes = null;
 function setNoise(on) {
@@ -763,6 +826,7 @@ function startPause() {
     F.running = false;
     setNoise(false);
   } else {
+    if (F.left === F.total) F.startClock = fmtClock(nowMin()); /* 记录这次专注的开始时间 */
     F.running = true;
     setNoise(noiseWanted());
     F.timer = setInterval(focusTick, 1000);
@@ -779,9 +843,16 @@ function focusTick() {
   updateFocusUI();
 }
 
-function recordFocus(mins) {
+function recordFocus(mins, taskName) {
   const t = todayStr();
   state.focusLog[t] = (state.focusLog[t] || 0) + mins;
+  state.focusSessions = state.focusSessions || [];
+  state.focusSessions.push({
+    date: t,
+    start: F.startClock || fmtClock(nowMin()),
+    minutes: mins,
+    task: taskName || ''
+  });
   save();
   updateChrome();
   toast(`已记录 ${mins} 分钟专注 💪`);
@@ -793,7 +864,7 @@ function finishFocus(natural) {
   setNoise(false);
   if (natural) {
     state.pomodoroCount = (state.pomodoroCount || 0) + 1;
-    recordFocus(Math.max(1, Math.round(F.total / 60)));
+    recordFocus(Math.max(1, Math.round(F.total / 60)), currentTaskName());
     beep();
     if (currentView === 'focus') renderGarden();
   }
@@ -805,7 +876,7 @@ function resetFocus() {
   const elapsedMin = Math.floor((F.total - F.left) / 60);
   if (!F.running && F.left === F.total) return;
   if (elapsedMin >= 1) {
-    if (confirm(`这次专注了约 ${elapsedMin} 分钟，记录下来吗？（确定=记录，取消=放弃）`)) recordFocus(elapsedMin);
+    if (confirm(`这次专注了约 ${elapsedMin} 分钟，记录下来吗？（确定=记录，取消=放弃）`)) recordFocus(elapsedMin, currentTaskName());
   }
   clearInterval(F.timer);
   F.running = false;
@@ -943,6 +1014,9 @@ function openTaskDialog(t) {
     ...state.classes.map(c => c.name)
   ])].map(c => `<option value="${esc(c)}">`).join('');
   f.reset();
+  const isDaily = t && t.repeat === 'daily';
+  f.taskType.value = isDaily ? 'daily' : 'once';
+  $('#taskDueRow').classList.toggle('hidden', isDaily);
   f.dueDate.value = t ? (t.due || '').slice(0, 10) || todayStr() : todayStr();
   f.dueTime.value = t ? ((t.due || '').slice(11, 16) || '23:59') : '23:59';
   if (t) {
@@ -1007,11 +1081,52 @@ function openBlockEdit(kind, id) {
   f.name.focus();
 }
 
+/* ── 今日专注明细（点“今日累计投入”卡片弹出） ── */
+function renderFocusDialog() {
+  const t = todayStr();
+  const sessions = (state.focusSessions || []).filter(s => s.date === t)
+    .slice().sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+  const total = sessions.reduce((s, x) => s + (x.minutes || 0), 0);
+  $('#fdTotal').textContent = fmtDur(total);
+  $('#fdCount').textContent = sessions.length ? `${sessions.length} 次专注` : '今天还没有专注记录';
+  /* 0-24 点时间带，每半小时一格，专注过的时间段涂黄 */
+  const cells = new Array(48).fill('');
+  for (const s of sessions) {
+    const from = toMin(s.start || '00:00');
+    const span = Math.max(1, Math.round((s.minutes || 0) / 30));
+    for (let i = 0; i < span; i++) {
+      const idx = Math.min(47, Math.floor(from / 30) + i);
+      cells[idx] = 'on';
+    }
+  }
+  $('#fdBars').innerHTML = cells.map(c => `<i class="fd-bar ${c}"></i>`).join('');
+  $('#fdList').innerHTML = sessions.length
+    ? sessions.map(s => `<div class="fd-row">
+        <span class="fd-time">${s.start || '--:--'} – ${fmtClock(toMin(s.start || '00:00') + (s.minutes || 0))}</span>
+        <span class="fd-min">${s.minutes} 分钟</span>
+        <span class="fd-task">${esc(s.task || '')}</span>
+      </div>`).join('')
+    : '<p class="hint" style="margin:6px 0 0">这次升级之前的专注只记了总时长，没有留下明细；从下一次专注开始，这里会显示每次的开始时间、时长和关联任务。</p>';
+}
+
 /* ── 事件绑定 ───────────────────────── */
 function bindEvents() {
   $$('.nav-btn, .bn-btn').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
   $('#avatar').addEventListener('click', () => go('me'));
   $('#btnFab').addEventListener('click', () => openTaskDialog(null));
+  /* 首页卡片：下一节课 → 该课所在的那一周课表；今日投入 → 专注明细 */
+  $('#nextCard').addEventListener('click', () => {
+    const ds = nextUp().ds;
+    weekOffset = ds
+      ? Math.round((new Date(mondayOf(ds) + 'T12:00') - new Date(mondayOf(todayStr()) + 'T12:00')) / 86400000 / 7)
+      : 0;
+    go('calendar');
+  });
+  $('#statFocusCard').addEventListener('click', () => {
+    renderFocusDialog();
+    $('#focusDialog').showModal();
+  });
+  $('#fdClose').addEventListener('click', () => $('#focusDialog').close());
   document.addEventListener('click', e => {
     const g = e.target.closest('[data-goto]');
     if (g) go(g.dataset.goto);
@@ -1231,22 +1346,45 @@ function bindEvents() {
     refresh();
     toast('已删除');
   });
+  $('#taskType').addEventListener('change', e => {
+    $('#taskDueRow').classList.toggle('hidden', e.target.value === 'daily');
+  });
   $('#taskForm').addEventListener('submit', e => {
     e.preventDefault();
     const f = e.target;
     const title = f.title.value.trim();
     if (!title) return toast('请填写任务名称');
-    const data = {
-      title,
-      course: f.course.value.trim() || '未分类',
-      due: (f.dueDate.value || todayStr()) + 'T' + (f.dueTime.value || '23:59'),
-      estimateMin: +f.estimateMin.value || 60,
-      priority: f.priority.value
-    };
+    const isDaily = f.taskType.value === 'daily';
+    let data;
+    if (isDaily) {
+      data = {
+        title,
+        course: f.course.value.trim() || '未分类',
+        repeat: 'daily',
+        due: '',
+        estimateMin: +f.estimateMin.value || 60,
+        priority: f.priority.value
+      };
+    } else {
+      if (!f.dueDate.value) return toast('单次任务请选择截止日期');
+      data = {
+        title,
+        course: f.course.value.trim() || '未分类',
+        due: f.dueDate.value + 'T' + (f.dueTime.value || '23:59'),
+        estimateMin: +f.estimateMin.value || 60,
+        priority: f.priority.value
+      };
+    }
     if (editingTaskId) {
       const t = state.tasks.find(x => x.id === editingTaskId);
+      const keepDone = t.done, keepDoneAt = t.doneAt, keepDates = t.doneDates;
       Object.assign(t, data);
+      if (isDaily) { t.doneDates = keepDates || []; delete t.done; delete t.doneAt; }
+      else { t.done = !!keepDone; t.doneAt = keepDoneAt; delete t.doneDates; }
       toast('已更新任务');
+    } else if (isDaily) {
+      state.tasks.unshift({ id: uid(), doneDates: [], ...data });
+      toast('已添加每日打卡任务');
     } else {
       state.tasks.unshift({ id: uid(), done: false, doneAt: null, ...data });
       toast('已添加任务');
