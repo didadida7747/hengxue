@@ -112,11 +112,17 @@ function seedState() {
     tasks: [
       { id: 't1', title: '完成高等数学第三章习题', course: '高等数学', due: `${today}T23:59`, estimateMin: 90, priority: '高', done: false, doneAt: null },
       { id: 't2', title: '阅读《社会学概论》第五章', course: '社会学概论', due: `${shift(-1)}T18:00`, estimateMin: 60, priority: '中', done: false, doneAt: null },
-      { id: 't3', title: '准备英语演讲稿', course: '大学英语', due: `${shift(2)}T20:00`, estimateMin: 120, priority: '低', done: false, doneAt: null }
+      { id: 't3', title: '准备英语演讲稿', course: '大学英语', due: `${shift(2)}T20:00`, estimateMin: 120, priority: '低', done: false, doneAt: null },
+      { id: 't4', title: '背 20 个单词', course: '大学英语', repeat: 'daily', due: '', estimateMin: 20, priority: '中', doneDates: [today] }
     ],
     classes: buildTimetable(),
     blocks: [],
     focusLog: { [today]: 150 },
+    focusSessions: [
+      { date: today, start: '09:30', minutes: 40, task: '深度学习' },
+      { date: today, start: '14:05', minutes: 60, task: '概率论习题' },
+      { date: today, start: '20:10', minutes: 50, task: '阅读' }
+    ],
     events: DEFAULT_EVENTS,
     habits: [
       { id: 'h1', name: '背单词 20 个', emoji: '📚' },
