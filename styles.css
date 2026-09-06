@@ -509,7 +509,12 @@ input, select { font-family: inherit; }
 .chip-自习 { background: var(--yellow-soft); }
 .chip-复盘 { background: var(--green-soft); }
 .chip-其他 { background: #ECE7DA; }
+.chip-假期 { background: var(--green-soft); border-style: dashed; cursor: default; }
+.chip-考试 { background: var(--red-soft); cursor: default; }
+.chip-开学 { background: var(--blue-soft); cursor: default; }
+.chip-校历 { background: #ECE7DA; cursor: default; }
 .chip:hover { transform: translate(-1px, -1px); box-shadow: 2px 2px 0 rgba(25,28,34,.25); }
+.chip-假期:hover, .chip-考试:hover, .chip-开学:hover, .chip-校历:hover { transform: none; box-shadow: none; }
 
 /* ── 负载分析 ───────────────────────── */
 .load-grid {
