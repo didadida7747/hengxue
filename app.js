@@ -10,6 +10,95 @@ const VIEWS = ['overview', 'tasks', 'calendar', 'load', 'focus', 'habits', 'me']
 const PALETTE = ['#F0B429', '#E4573D', '#4E7DD1', '#3E7C4F', '#8E6FC1', '#D977A2'];
 const RING_C = 728.8; /* 2πr, r=116 */
 
+/* ── 学期与课表（2026-2027 学年第一学期，第一周从 2026-09-07 周一开始） ── */
+const SEMESTER_START = '2026-09-07';
+const PERIODS = { 1: ['08:00', 100], 3: ['10:00', 100], 5: ['14:00', 100], 7: ['16:05', 100], 9: ['19:00', 95] };
+function expandWeeks(text) {
+  /* '1-4,6-17' → [1,2,3,4,6..17]；'2-6双,10-16双' → 双周（偶数） */
+  const out = [];
+  for (const part of String(text).split(/[,，]/)) {
+    const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?\s*周?(（双）|\(双\)|双|（单）|\(单\)|单)?$/);
+    if (!m) continue;
+    const a = +m[1], b = m[2] ? +m[2] : a;
+    const par = m[3] || '';
+    for (let w = a; w <= b; w++) {
+      if (par.includes('双') && w % 2 !== 0) continue;
+      if (par.includes('单') && w % 2 !== 1) continue;
+      if (!out.includes(w)) out.push(w);
+    }
+  }
+  return out.sort((x, y) => x - y);
+}
+const TIMETABLE_SPEC = [
+  ['概率论与数理统计-10', 1, 3, 'A-518', '杜兰', '1-4,6-17'],
+  ['马克思主义基本原理-02', 1, 5, 'A-225', '孙江可', '1-4,6-17'],
+  ['线性代数进阶-01', 1, 7, 'A-402', '黄丘林', '1-4,6-9'],
+  ['大学英语中级(I)-53', 2, 1, 'E1-201', '吴启瑞', '1-7,9-17'],
+  ['大学物理(II)-03', 2, 3, 'B-407', '秦桄阳', '1-7,9-17'],
+  ['场论与复变函数-01', 2, 5, 'A-603', '安翔,吕志清', '1-6'],
+  ['敦煌学探秘-01', 2, 9, 'A-414', '董永强', '4-7,9-12'],
+  ['概率论与数理统计-10', 3, 1, 'A-518', '杜兰', '1-7,9-17'],
+  ['电路分析与电子线路BI-02', 3, 3, 'A-423', '李彩彩', '1-7,9-17'],
+  ['班级指导-265', 3, 7, 'A-203', '刘婧', '2-6双,10-16双'],
+  ['敦煌学探秘-01', 3, 9, 'A-414', '董永强', '4-7,9-12'],
+  ['大学物理(II)-03', 4, 1, 'B-407', '秦桄阳', '1-3,5-17'],
+  ['大学体育(III)-100 乒乓球俱乐部（上）', 4, 3, '', '苏振阳', '2-3,5-17'],
+  ['形势与政策(III)-07', 4, 5, 'B-206', '刘晓红', '11-14'],
+  ['马克思主义基本原理-02', 4, 7, 'A-225', '孙江可', '1-3,5-9'],
+  ['虚实之间：山水审美与山水艺术-02', 4, 9, 'A-318', '王志清', '5-12'],
+  ['场论与复变函数-01', 5, 1, 'A-603', '安翔,吕志清', '1-2,5-16'],
+  ['电路分析与电子线路BI-02', 5, 7, 'A-423', '李彩彩', '1-2,5-10'],
+  ['从课堂到生活：探寻健康的奥秘-01', 5, 9, 'A-226', '赵彩艳', '5-12']
+];
+function buildTimetable() {
+  return TIMETABLE_SPEC.map((c, i) => ({
+    id: 'tt' + String(i + 1).padStart(2, '0'),
+    name: c[0], weekday: c[1], kind: '课程',
+    start: PERIODS[c[2]][0], minutes: PERIODS[c[2]][1],
+    location: c[3], teacher: c[4], weeks: expandWeeks(c[5])
+  }));
+}
+const DEFAULT_EVENTS = [
+  { id: 'ev01', name: '中秋节放假', date: '2026-09-25', endDate: '', kind: '假期' },
+  { id: 'ev02', name: '国庆节放假（调休安排以学校通知为准）', date: '2026-10-01', endDate: '2026-10-07', kind: '假期' },
+  { id: 'ev03', name: '期中考试（预计，以教务通知为准）', date: '2026-11-04', endDate: '2026-11-05', kind: '考试' },
+  { id: 'ev04', name: '元旦放假', date: '2027-01-01', endDate: '', kind: '假期' },
+  { id: 'ev05', name: '期末考试（预计，共两周）', date: '2027-01-11', endDate: '2027-01-24', kind: '考试' },
+  { id: 'ev06', name: '第二学期上课（预计）', date: '2027-03-01', endDate: '', kind: '开学' },
+  { id: 'ev07', name: '第二学期期中考试（预计）', date: '2027-04-21', endDate: '2027-04-22', kind: '考试' },
+  { id: 'ev08', name: '春季运动会（预计）', date: '2027-04-28', endDate: '2027-04-29', kind: '校历' },
+  { id: 'ev09', name: '第二学期期末考试（预计）', date: '2027-06-15', endDate: '2027-06-28', kind: '考试' }
+];
+function weeksToText(weeks) {
+  if (!weeks || !weeks.length) return '每周';
+  const ws = weeks.slice().sort((a, b) => a - b);
+  const parts = [];
+  let i = 0;
+  while (i < ws.length) {
+    let j = i;
+    while (j + 1 < ws.length && ws[j + 1] === ws[j] + 1) j++;
+    if (j - i >= 2 && ws[i + 1] - ws[i] === 2) {
+      parts.push(`${ws[i]}-${ws[j]}周${ws[i] % 2 === 0 ? '（双）' : '（单）'}`);
+    } else if (j > i) {
+      parts.push(`${ws[i]}-${ws[j]}周`);
+    } else {
+      parts.push(`${ws[i]}周`);
+    }
+    i = j + 1;
+  }
+  return parts.join(',');
+}
+function parseWeeksText(text) {
+  if (!text || /每周/.test(text)) return null;
+  const w = expandWeeks(text);
+  return w.length ? w : null;
+}
+function semesterWeekOf(ds) {
+  const start = state.settings && state.settings.semesterStart;
+  if (!start) return null;
+  return Math.round((new Date(ds + 'T12:00') - new Date(start + 'T12:00')) / 86400000 / 7) + 1;
+}
+
 let state = null;
 let info = { port: 0, lan: [] };
 const MODE = { server: false };  /* true=电脑版(本地发动机) false=网页版(数据存浏览器) */
@@ -89,27 +178,21 @@ function toast(msg) {
 /* 网页版的示例数据（和电脑版一致，日期按当天生成） */
 function clientSeed() {
   return {
-    version: 1,
+    version: 2,
+    settings: { semesterStart: SEMESTER_START, timetableV2: true },
     profile: { name: '符同学' },
     tasks: [
       { id: 't1', title: '完成高等数学第三章习题', course: '高等数学', due: `${todayStr(0)}T23:59`, estimateMin: 90, priority: '高', done: false, doneAt: null },
       { id: 't2', title: '阅读《社会学概论》第五章', course: '社会学概论', due: `${todayStr(-1)}T18:00`, estimateMin: 60, priority: '中', done: false, doneAt: null },
       { id: 't3', title: '准备英语演讲稿', course: '大学英语', due: `${todayStr(2)}T20:00`, estimateMin: 120, priority: '低', done: false, doneAt: null }
     ],
-    classes: [
-      { id: 'c1', name: '数据结构', weekday: 3, start: '14:00', minutes: 100, location: '教三 204' },
-      { id: 'c2', name: '高等数学', weekday: 1, start: '08:00', minutes: 100, location: '教一 101' },
-      { id: 'c3', name: '大学英语', weekday: 5, start: '10:00', minutes: 90, location: '外语楼 302' }
-    ],
+    classes: buildTimetable(),
     blocks: [
       { id: 'b1', name: '深度学习时间', date: todayStr(0), start: '09:30', minutes: 45, kind: '自习' },
       { id: 'b2', name: '整理今日复盘', date: todayStr(0), start: '20:00', minutes: 30, kind: '复盘' }
     ],
     focusLog: { [todayStr(0)]: 150 },
-    exams: [
-      { id: 'e1', name: '高等数学期中考试', date: todayStr(14) },
-      { id: 'e2', name: '大学英语四级', date: todayStr(45) }
-    ],
+    events: DEFAULT_EVENTS,
     habits: [
       { id: 'h1', name: '背单词 20 个', emoji: '📚' },
       { id: 'h2', name: '晨跑 30 分钟', emoji: '🏃' },
@@ -166,6 +249,19 @@ async function loadAll() {
   state.habits = state.habits || [];
   state.habitLog = state.habitLog || {};
   state.pomodoroCount = state.pomodoroCount || 0;
+  state.events = state.events || [];
+  if (migrateTimetable()) save();
+}
+
+/* 一次性升级：把示例课表换成真实课表，并接入校历日程 */
+function migrateTimetable() {
+  if (state.settings && state.settings.timetableV2 === true) return false;
+  state.settings = { semesterStart: SEMESTER_START, timetableV2: true };
+  state.classes = buildTimetable();
+  state.events = DEFAULT_EVENTS;
+  state.blocks = state.blocks.filter(b => !['深度学习时间', '整理今日复盘'].includes(b.name));
+  delete state.exams;
+  return true;
 }
 
 function save() {
@@ -189,8 +285,14 @@ function save() {
 
 /* ── 派生数据 ───────────────────────── */
 function itemsOn(ds) {
+  const wk = semesterWeekOf(ds);
   const cls = state.classes.filter(c => weekdayOf(ds) === c.weekday)
-    .map(c => ({ ...c, date: ds, kind: '课程' }));
+    .filter(c => {
+      if (wk == null) return true;          /* 没设置学期开始 → 每周都显示 */
+      if (wk < 1) return !c.weeks;          /* 开学前：只显示没排周次的课程（一般没有） */
+      return !c.weeks || c.weeks.includes(wk);
+    })
+    .map(c => ({ ...c, date: ds, kind: c.kind || '课程' }));
   const blks = state.blocks.filter(b => b.date === ds);
   return [...cls, ...blks].sort((a, b) => toMin(a.start) - toMin(b.start));
 }
@@ -391,15 +493,18 @@ function renderOverview() {
   $('#momFill').style.width = M.score + '%';
   $('#momHint').textContent = M.hint;
 
-  /* 考试倒计时 */
+  /* 考试倒计时（取校历日程里最近的考试） */
   const todayNow = todayStr();
-  const nextExam = state.exams.filter(x => x.date >= todayNow).sort((a, b) => a.date.localeCompare(b.date))[0];
+  const nextExam = (state.events || [])
+    .filter(ev => ev.kind === '考试' && (ev.endDate || ev.date) >= todayNow)
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
   if (nextExam) {
     const days = Math.round((new Date(nextExam.date + 'T12:00') - new Date(todayNow + 'T12:00')) / 86400000);
+    const range = nextExam.endDate && nextExam.endDate !== nextExam.date ? ` – ${fmtDateLabel(nextExam.endDate)}` : '';
     $('#examBody').innerHTML = `
       <div class="exam-days"><b class="${days === 0 ? 'today' : ''}">${days === 0 ? '今天' : days}</b>${days === 0 ? '' : '<span>天后</span>'}</div>
       <div class="exam-name">${esc(nextExam.name)}</div>
-      <div class="exam-date">${fmtDateLabel(nextExam.date)} 周${cnWeek(weekdayOf(nextExam.date))}${days === 0 ? '，加油！' : ''}</div>`;
+      <div class="exam-date">${fmtDateLabel(nextExam.date)}${range} 周${cnWeek(weekdayOf(nextExam.date))}${days === 0 ? '，加油！' : ''}</div>`;
   } else {
     $('#examBody').innerHTML = '<p class="exam-empty">还没有考试安排，<button class="linklike" data-goto="calendar">去添加</button></p>';
   }
@@ -498,40 +603,52 @@ function renderHabits() {
     : '<p class="exam-empty">添加习惯后，这里会显示最近 14 天的打卡记录。</p>';
 }
 
-/* ── 考试管理（日历页） ─────────────── */
-function renderExams() {
+/* ── 校历日程（考试 / 假期 / 开学） ──── */
+function renderEvents() {
   const t = todayStr();
-  const list = state.exams.slice().sort((a, b) => a.date.localeCompare(b.date));
-  const rowHtml = (x, isPast) => {
-    const days = Math.round((new Date(x.date + 'T12:00') - new Date(t + 'T12:00')) / 86400000);
-    const label = isPast ? '已结束' : days === 0 ? '今天考！' : days === 1 ? '明天考' : `还有 ${days} 天`;
-    return `<div class="exam-row" data-exam="${x.id}">
-      <div class="exam-title"><b>${esc(x.name)}</b><span>${fmtDateLabel(x.date)} 周${cnWeek(weekdayOf(x.date))}</span></div>
-      <span class="pill ${isPast ? 'pill-lo' : 'pill-mid'}">${label}</span>
-      <button class="icon-btn" data-act="exam-del" title="删除"><svg><use href="#i-trash"/></svg></button>
+  const list = (state.events || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const rowHtml = (ev, isPast) => {
+    const end = ev.endDate || ev.date;
+    const days = Math.round((new Date(ev.date + 'T12:00') - new Date(t + 'T12:00')) / 86400000);
+    let label;
+    if (isPast) label = '已结束';
+    else if (days === 0) label = '今天开始！';
+    else if (days === 1) label = '明天开始';
+    else label = `还有 ${days} 天`;
+    const range = ev.endDate && ev.endDate !== ev.date ? ` – ${fmtDateLabel(ev.endDate)}` : '';
+    return `<div class="exam-row" data-event="${ev.id}">
+      <div class="exam-title"><b>${esc(ev.name)}</b><span>${fmtDateLabel(ev.date)}${range} 周${cnWeek(weekdayOf(ev.date))}</span></div>
+      <span class="pill ${ev.kind === '考试' ? 'pill-hi' : isPast ? 'pill-lo' : 'pill-mid'}">${esc(ev.kind)} · ${label}</span>
+      <button class="icon-btn" data-act="event-del" title="删除"><svg><use href="#i-trash"/></svg></button>
     </div>`;
   };
-  const upcoming = list.filter(x => x.date >= t).map(x => rowHtml(x, false)).join('');
-  const past = list.filter(x => x.date < t).map(x => rowHtml(x, true)).join('');
-  $('#examList').innerHTML = (upcoming + past) || '<p class="exam-empty">还没有考试，在下面添加吧。</p>';
+  const upcoming = list.filter(x => (x.endDate || x.date) >= t).map(x => rowHtml(x, false)).join('');
+  const past = list.filter(x => (x.endDate || x.date) < t).map(x => rowHtml(x, true)).join('');
+  $('#examList').innerHTML = (upcoming + past) || '<p class="exam-empty">还没有日程，在下面添加吧。</p>';
 }
 
 function renderCalendar() {
   const base = addDays(mondayOf(todayStr()), weekOffset * 7);
-  $('#wkLabel').textContent = `${fmtDateLabel(base)} – ${fmtDateLabel(addDays(base, 6))}`;
+  const wk = semesterWeekOf(base);
+  $('#wkLabel').textContent = `${fmtDateLabel(base)} – ${fmtDateLabel(addDays(base, 6))}` +
+    (wk && wk >= 1 ? ` · 第 ${wk} 周` : (wk != null ? ' · 假期中' : ''));
   const grid = $('#weekGrid');
   grid.innerHTML = '';
   for (let i = 0; i < 7; i++) {
     const ds = addDays(base, i);
     const col = document.createElement('div');
     col.className = 'day-col' + (ds === todayStr() ? ' today' : '');
+    const evs = (state.events || []).filter(ev => ds >= ev.date && ds <= (ev.endDate || ev.date));
+    const evHtml = evs.map(ev =>
+      `<div class="chip chip-${esc(ev.kind)}"><b>📅 ${esc(ev.name)}</b></div>`).join('');
     const chips = itemsOn(ds).map(it => `
       <button class="chip chip-${esc(it.kind || '其他')}" data-del-item="${it.id}" data-kind="${esc(it.kind || '')}" data-name="${esc(it.name)}">
         <span class="chip-time">${it.start}–${fmtClock(toMin(it.start) + it.minutes)}</span>
         <b>${esc(it.name)}</b>
-        ${it.location ? `<span>${esc(it.location)}</span>` : ''}
+        ${it.location ? `<span>📍 ${esc(it.location)}</span>` : ''}
+        ${it.teacher ? `<span>👨‍🏫 ${esc(it.teacher)}</span>` : ''}
       </button>`).join('');
-    col.innerHTML = `<div class="day-head"><b>${fmtDateLabel(ds)}</b><span>周${cnWeek(weekdayOf(ds))}</span></div>${chips || '<div class="day-empty">—</div>'}`;
+    col.innerHTML = `<div class="day-head"><b>${fmtDateLabel(ds)}</b><span>周${cnWeek(weekdayOf(ds))}</span></div>${evHtml + chips || '<div class="day-empty">—</div>'}`;
     grid.appendChild(col);
   }
 }
@@ -717,6 +834,7 @@ function beep() {
 /* ── 我的空间 ───────────────────────── */
 function renderMe() {
   $('#nameInput').value = state.profile.name;
+  $('#semesterStart').value = (state.settings && state.settings.semesterStart) || '';
   $('#lanCard').classList.toggle('hidden', !MODE.server);
   $('#standaloneCard').classList.toggle('hidden', MODE.server);
   $('#dataSub2').textContent = MODE.server
@@ -745,7 +863,7 @@ function route() {
   $$('.nav-btn, .bn-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
   if (v === 'overview') renderOverview();
   else if (v === 'tasks') renderTasks();
-  else if (v === 'calendar') { renderCalendar(); renderExams(); }
+  else if (v === 'calendar') { renderCalendar(); renderEvents(); }
   else if (v === 'load') renderLoad();
   else if (v === 'focus') renderFocus();
   else if (v === 'habits') renderHabits();
@@ -845,6 +963,7 @@ function openBlockDialog() {
   f.reset();
   $('#blockDateRow').classList.remove('hidden');
   $('#blockWeekRow').classList.add('hidden');
+  $('#blockClassRow').classList.add('hidden');
   $('#blockRepeatRow').classList.remove('hidden');
   $('#blockDelete').classList.add('hidden');
   f.date.value = todayStr();
@@ -861,11 +980,14 @@ function openBlockEdit(kind, id) {
     if (!c) return;
     $('#blockDateRow').classList.add('hidden');
     $('#blockWeekRow').classList.remove('hidden');
+    $('#blockClassRow').classList.remove('hidden');
     $('#blockRepeatRow').classList.add('hidden');
     f.name.value = c.name;
     f.start.value = c.start;
     f.minutes.value = String(c.minutes);
     f.location.value = c.location || '';
+    f.teacher.value = c.teacher || '';
+    f.weeksText.value = weeksToText(c.weeks);
     f.weekday.value = String(c.weekday);
   } else {
     const b = state.blocks.find(x => x.id === id);
@@ -917,28 +1039,32 @@ function bindEvents() {
     openBlockEdit(chip.dataset.kind === '课程' ? 'class' : 'block', chip.dataset.delItem);
   });
 
-  /* 考试管理 */
+  /* 校历日程（考试 / 假期 / 开学） */
   $('#btnAddExam').addEventListener('click', () => {
     const name = $('#examName').value.trim();
     const date = $('#examDate').value;
-    if (!name) return toast('请填写考试名');
-    if (!date) return toast('请选择考试日期');
-    state.exams.push({ id: uid(), name, date });
+    if (!name) return toast('请填写名称');
+    if (!date) return toast('请选择日期');
+    state.events.push({
+      id: uid(), name, date,
+      endDate: $('#eventEnd').value || '',
+      kind: $('#eventKind').value
+    });
     $('#examName').value = '';
     save();
-    renderExams();
-    toast('已添加考试');
+    renderEvents();
+    toast('已添加日程');
   });
   $('#examList').addEventListener('click', e => {
-    const btn = e.target.closest('[data-act="exam-del"]');
+    const btn = e.target.closest('[data-act="event-del"]');
     if (!btn) return;
-    const id = btn.closest('[data-exam]').dataset.exam;
-    const x = state.exams.find(x2 => x2.id === id);
-    if (!x) return;
-    if (!confirm(`删除考试「${x.name}」？`)) return;
-    state.exams = state.exams.filter(x2 => x2.id !== id);
+    const id = btn.closest('[data-event]').dataset.event;
+    const ev = (state.events || []).find(x => x.id === id);
+    if (!ev) return;
+    if (!confirm(`删除日程「${ev.name}」？`)) return;
+    state.events = state.events.filter(x => x.id !== id);
     save();
-    renderExams();
+    renderEvents();
     toast('已删除');
   });
 
@@ -1025,6 +1151,14 @@ function bindEvents() {
     navigator.clipboard.writeText(b.dataset.copy)
       .then(() => toast('已复制，去手机浏览器粘贴打开'))
       .catch(() => toast('复制失败，请手动选择地址复制'));
+  });
+  $('#btnSaveSemester').addEventListener('click', () => {
+    const v = $('#semesterStart').value;
+    if (!v) return toast('请先选择第一周周一的日期');
+    state.settings = state.settings || {};
+    state.settings.semesterStart = v;
+    save();
+    toast('已保存，课表按新学期时间推算');
   });
   $('#btnExport').addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -1119,6 +1253,11 @@ function bindEvents() {
     save();
     refresh();
   });
+  $('#blockForm').addEventListener('change', e => {
+    if (e.target.name === 'repeat' && !blockEdit) {
+      $('#blockClassRow').classList.toggle('hidden', !e.target.checked);
+    }
+  });
   $('#blockForm').addEventListener('submit', e => {
     e.preventDefault();
     const f = e.target;
@@ -1129,7 +1268,13 @@ function bindEvents() {
     if (blockEdit) {
       if (blockEdit.kind === 'class') {
         const c = state.classes.find(x => x.id === blockEdit.id);
-        Object.assign(c, { name, start, minutes, weekday: +f.weekday.value, location: f.location.value.trim() });
+        Object.assign(c, {
+          name, start, minutes,
+          weekday: +f.weekday.value,
+          location: f.location.value.trim(),
+          teacher: f.teacher.value.trim(),
+          weeks: parseWeeksText(f.weeksText.value)
+        });
       } else {
         const b = state.blocks.find(x => x.id === blockEdit.id);
         Object.assign(b, { name, date: f.date.value || todayStr(), start, minutes, kind: f.kind.value });
@@ -1139,7 +1284,12 @@ function bindEvents() {
       const date = f.date.value || todayStr();
       const kind = f.kind.value;
       if (f.repeat.checked) {
-        state.classes.push({ id: uid(), name, weekday: weekdayOf(date), start, minutes, location: f.location.value.trim() });
+        state.classes.push({
+          id: uid(), name, weekday: weekdayOf(date), start, minutes,
+          location: f.location.value.trim(),
+          teacher: f.teacher.value.trim(),
+          weeks: parseWeeksText(f.weeksText.value)
+        });
         toast('已加入每周课表');
       } else {
         state.blocks.push({ id: uid(), name, date, start, minutes, kind });
