@@ -6,7 +6,7 @@
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
-const VIEWS = ['overview', 'tasks', 'calendar', 'load', 'focus', 'me'];
+const VIEWS = ['overview', 'tasks', 'calendar', 'load', 'focus', 'habits', 'me'];
 const PALETTE = ['#F0B429', '#E4573D', '#4E7DD1', '#3E7C4F', '#8E6FC1', '#D977A2'];
 const RING_C = 728.8; /* 2πr, r=116 */
 
@@ -105,7 +105,18 @@ function clientSeed() {
       { id: 'b1', name: '深度学习时间', date: todayStr(0), start: '09:30', minutes: 45, kind: '自习' },
       { id: 'b2', name: '整理今日复盘', date: todayStr(0), start: '20:00', minutes: 30, kind: '复盘' }
     ],
-    focusLog: { [todayStr(0)]: 150 }
+    focusLog: { [todayStr(0)]: 150 },
+    exams: [
+      { id: 'e1', name: '高等数学期中考试', date: todayStr(14) },
+      { id: 'e2', name: '大学英语四级', date: todayStr(45) }
+    ],
+    habits: [
+      { id: 'h1', name: '背单词 20 个', emoji: '📚' },
+      { id: 'h2', name: '晨跑 30 分钟', emoji: '🏃' },
+      { id: 'h3', name: '睡前阅读 20 页', emoji: '🌙' }
+    ],
+    habitLog: { [todayStr(0)]: ['h1'] },
+    pomodoroCount: 3
   };
 }
 
@@ -151,6 +162,10 @@ async function loadAll() {
   state.classes = state.classes || [];
   state.blocks = state.blocks || [];
   state.focusLog = state.focusLog || {};
+  state.exams = state.exams || [];
+  state.habits = state.habits || [];
+  state.habitLog = state.habitLog || {};
+  state.pomodoroCount = state.pomodoroCount || 0;
 }
 
 function save() {
@@ -376,6 +391,19 @@ function renderOverview() {
   $('#momFill').style.width = M.score + '%';
   $('#momHint').textContent = M.hint;
 
+  /* 考试倒计时 */
+  const todayNow = todayStr();
+  const nextExam = state.exams.filter(x => x.date >= todayNow).sort((a, b) => a.date.localeCompare(b.date))[0];
+  if (nextExam) {
+    const days = Math.round((new Date(nextExam.date + 'T12:00') - new Date(todayNow + 'T12:00')) / 86400000);
+    $('#examBody').innerHTML = `
+      <div class="exam-days"><b class="${days === 0 ? 'today' : ''}">${days === 0 ? '今天' : days}</b>${days === 0 ? '' : '<span>天后</span>'}</div>
+      <div class="exam-name">${esc(nextExam.name)}</div>
+      <div class="exam-date">${fmtDateLabel(nextExam.date)} 周${cnWeek(weekdayOf(nextExam.date))}${days === 0 ? '，加油！' : ''}</div>`;
+  } else {
+    $('#examBody').innerHTML = '<p class="exam-empty">还没有考试安排，<button class="linklike" data-goto="calendar">去添加</button></p>';
+  }
+
   /* 今天的任务 */
   const t0 = todayStr();
   const list = dueTasksUpToToday().filter(x => !x.done || (x.doneAt || '').slice(0, 10) === t0)
@@ -387,13 +415,105 @@ function renderOverview() {
 }
 
 function renderTasks() {
-  let list = state.tasks.slice().sort((a, b) =>
+  const t = todayStr();
+  const all = state.tasks.slice().sort((a, b) =>
     ((a.done ? 1 : 0) - (b.done ? 1 : 0)) || (a.due || '').localeCompare(b.due || ''));
-  if (taskFilter === 'open') list = list.filter(x => !x.done);
-  if (taskFilter === 'done') list = list.filter(x => x.done);
-  $('#taskList').innerHTML = list.length
-    ? list.map(taskRowHTML).join('')
-    : '<p class="hint">这里空空的。点右上角「＋ 新建任务」开始规划。</p>';
+
+  if (taskFilter === 'done') {
+    const done = all.filter(x => x.done);
+    $('#taskList').innerHTML = done.length
+      ? done.map(taskRowHTML).join('')
+      : '<p class="hint">还没有已完成的任务。</p>';
+    return;
+  }
+
+  const open = all.filter(x => !x.done);
+  const groups = [
+    ['已逾期', 'overdue', open.filter(x => (x.due || '').slice(0, 10) && (x.due || '').slice(0, 10) < t)],
+    ['今天', '', open.filter(x => (x.due || '').slice(0, 10) === t)],
+    ['以后', '', open.filter(x => !(x.due || '').slice(0, 10) || (x.due || '').slice(0, 10) > t)]
+  ];
+  let html = '';
+  for (const [name, cls, arr] of groups) {
+    if (arr.length) {
+      html += `<div class="group-head ${cls}">${name} · ${arr.length}</div>` + arr.map(taskRowHTML).join('');
+    }
+  }
+  if (!html) html = '<p class="hint">这里空空的。点右上角「＋ 新建任务」开始规划。</p>';
+  if (taskFilter === 'all') {
+    const done = all.filter(x => x.done);
+    if (done.length) html += `<div class="group-head">已完成 · ${done.length}</div>` + done.map(taskRowHTML).join('');
+  }
+  $('#taskList').innerHTML = html;
+}
+
+/* ── 习惯打卡 ───────────────────────── */
+function habitStreak(h) {
+  const done = (ds) => (state.habitLog[ds] || []).includes(h.id);
+  let streak = 0;
+  let i = done(todayStr()) ? 0 : 1; /* 今天还没打，则从昨天开始往回数 */
+  while (i <= 3660) {
+    if (done(todayStr(-i))) { streak++; i++; }
+    else break;
+  }
+  return streak;
+}
+
+function renderHabits() {
+  const t = todayStr();
+  const doneIds = state.habitLog[t] || [];
+  $('#habitCount').textContent = `${doneIds.length}/${state.habits.length}`;
+  $('#habitStreakPill').textContent = state.habits.length && doneIds.length >= state.habits.length
+    ? '今日全勤 ✓'
+    : `已打 ${doneIds.length}/${state.habits.length}`;
+
+  $('#habitToday').innerHTML = state.habits.length ? state.habits.map(h => {
+    const on = doneIds.includes(h.id);
+    const s = habitStreak(h);
+    return `<div class="habit-row ${on ? 'done' : ''}" data-habit="${h.id}">
+      <button class="ck" data-act="habit-toggle" title="打卡 / 取消打卡">
+        <svg viewBox="0 0 24 24"><path d="M4.5 12.5l5 5 10-11" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="habit-emoji">${esc(h.emoji || '📌')}</span>
+      <div class="habit-main"><b>${esc(h.name)}</b><span>${s > 0 ? `已坚持 ${s} 天` : '今天还没打卡'}</span></div>
+      <span class="streak-pill">🔥 ${s}</span>
+    </div>`;
+  }).join('') : '<p class="exam-empty">还没有习惯，在右边添加第一个吧。</p>';
+
+  $('#habitManage').innerHTML = state.habits.map(h => `
+    <div class="habit-row" data-habit="${h.id}">
+      <span class="habit-emoji">${esc(h.emoji || '📌')}</span>
+      <div class="habit-main"><b>${esc(h.name)}</b></div>
+      <button class="icon-btn" data-act="habit-del" title="删除习惯"><svg><use href="#i-trash"/></svg></button>
+    </div>`).join('') || '<p class="exam-empty">还没有习惯。</p>';
+
+  const days = Array.from({ length: 14 }, (_, i) => todayStr(-13 + i));
+  $('#habitHeat').innerHTML = state.habits.length
+    ? state.habits.map(h => `
+      <div class="habit-heat-row">
+        <div class="habit-heat-name">${esc(h.emoji || '')} ${esc(h.name)}</div>
+        <div class="heat-cells">${days.map(ds => `<i class="heat-cell ${(state.habitLog[ds] || []).includes(h.id) ? 'on' : ''} ${ds === t ? 'today' : ''}" title="${ds}"></i>`).join('')}</div>
+      </div>`).join('') +
+      `<div class="heat-legend"><i class="heat-cell"></i> 未打卡&nbsp;&nbsp;<i class="heat-cell on"></i> 已打卡&nbsp;&nbsp;（最右是今天）</div>`
+    : '<p class="exam-empty">添加习惯后，这里会显示最近 14 天的打卡记录。</p>';
+}
+
+/* ── 考试管理（日历页） ─────────────── */
+function renderExams() {
+  const t = todayStr();
+  const list = state.exams.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const rowHtml = (x, isPast) => {
+    const days = Math.round((new Date(x.date + 'T12:00') - new Date(t + 'T12:00')) / 86400000);
+    const label = isPast ? '已结束' : days === 0 ? '今天考！' : days === 1 ? '明天考' : `还有 ${days} 天`;
+    return `<div class="exam-row" data-exam="${x.id}">
+      <div class="exam-title"><b>${esc(x.name)}</b><span>${fmtDateLabel(x.date)} 周${cnWeek(weekdayOf(x.date))}</span></div>
+      <span class="pill ${isPast ? 'pill-lo' : 'pill-mid'}">${label}</span>
+      <button class="icon-btn" data-act="exam-del" title="删除"><svg><use href="#i-trash"/></svg></button>
+    </div>`;
+  };
+  const upcoming = list.filter(x => x.date >= t).map(x => rowHtml(x, false)).join('');
+  const past = list.filter(x => x.date < t).map(x => rowHtml(x, true)).join('');
+  $('#examList').innerHTML = (upcoming + past) || '<p class="exam-empty">还没有考试，在下面添加吧。</p>';
 }
 
 function renderCalendar() {
@@ -453,12 +573,57 @@ function renderLoad() {
 /* ── 专注模式 ───────────────────────── */
 const F = { total: 25 * 60, left: 25 * 60, running: false, timer: null };
 
+let noiseNodes = null;
+function setNoise(on) {
+  if (on) {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!noiseNodes) noiseNodes = {};
+      if (!noiseNodes.ctx) noiseNodes.ctx = new Ctx();
+      const ctx = noiseNodes.ctx;
+      if (ctx.state === 'suspended') ctx.resume();
+      if (noiseNodes.src) return; /* 已经在响 */
+      const len = ctx.sampleRate * 2;
+      const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) {
+        const w = Math.random() * 2 - 1;
+        last = (last + 0.02 * w) / 1.02; /* 棕噪声，听起来像稳定雨声 */
+        d[i] = last * 3.5;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.loop = true;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.1;
+      src.connect(gain);
+      gain.connect(ctx.destination);
+      src.start();
+      noiseNodes.src = src;
+    } catch (e) { /* 浏览器不支持就算了 */ }
+  } else if (noiseNodes && noiseNodes.src) {
+    try { noiseNodes.src.stop(); } catch (e) {}
+    noiseNodes.src = null;
+  }
+}
+
+function noiseWanted() { return $('#noiseToggle').checked; }
+
+function renderGarden() {
+  const n = state.pomodoroCount || 0;
+  $('#focusGarden').innerHTML = n === 0
+    ? '<span class="sprout">完成第一个番茄钟，种下第一棵树 🌱</span>'
+    : '🌳'.repeat(Math.min(n, 12)) + (n > 12 ? ` <span class="sprout">…已经种了 ${n} 棵</span>` : '');
+}
+
 function renderFocus() {
   const sel = $('#focusTask');
   const cur = sel.value;
   sel.innerHTML = '<option value="">随便专注一下（不关联任务）</option>' +
     state.tasks.filter(t => !t.done).map(t => `<option value="${t.id}">${esc(t.title)}</option>`).join('');
   if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+  renderGarden();
   updateFocusUI();
 }
 
@@ -468,16 +633,21 @@ function updateFocusUI() {
   $('#ringFill').style.strokeDashoffset = RING_C * (1 - F.left / F.total);
   $('#focusState').textContent = F.running ? '专注中…' : F.left === F.total ? '准备开始' : '已暂停';
   $('#btnStart').textContent = F.running ? '暂停' : F.left === F.total ? '开始专注' : '继续';
-  $$('#focusDurs button').forEach(b =>
-    b.classList.toggle('active', +b.dataset.min * 60 === F.total));
+  const isPreset = [25, 45, 60].includes(F.total / 60);
+  $$('#focusDurs button').forEach(b => {
+    b.classList.toggle('active', b.dataset.min === 'custom' ? !isPreset : +b.dataset.min * 60 === F.total);
+  });
+  $('#focusCustom').classList.toggle('hidden', isPreset);
 }
 
 function startPause() {
   if (F.running) {
     clearInterval(F.timer);
     F.running = false;
+    setNoise(false);
   } else {
     F.running = true;
+    setNoise(noiseWanted());
     F.timer = setInterval(focusTick, 1000);
   }
   updateFocusUI();
@@ -503,9 +673,12 @@ function recordFocus(mins) {
 function finishFocus(natural) {
   clearInterval(F.timer);
   F.running = false;
+  setNoise(false);
   if (natural) {
+    state.pomodoroCount = (state.pomodoroCount || 0) + 1;
     recordFocus(Math.max(1, Math.round(F.total / 60)));
     beep();
+    if (currentView === 'focus') renderGarden();
   }
   F.left = F.total;
   if (currentView === 'focus') renderFocus();
@@ -519,6 +692,7 @@ function resetFocus() {
   }
   clearInterval(F.timer);
   F.running = false;
+  setNoise(false);
   F.left = F.total;
   if (currentView === 'focus') renderFocus();
 }
@@ -571,9 +745,10 @@ function route() {
   $$('.nav-btn, .bn-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v));
   if (v === 'overview') renderOverview();
   else if (v === 'tasks') renderTasks();
-  else if (v === 'calendar') renderCalendar();
+  else if (v === 'calendar') { renderCalendar(); renderExams(); }
   else if (v === 'load') renderLoad();
   else if (v === 'focus') renderFocus();
+  else if (v === 'habits') renderHabits();
   else if (v === 'me') renderMe();
   closeSearch();
 }
@@ -643,6 +818,11 @@ function openTaskDialog(t) {
   const f = $('#taskForm');
   editingTaskId = t ? t.id : null;
   $('#taskDlgTitle').textContent = t ? '编辑任务' : '新建任务';
+  /* 课程名自动补全：来自已有任务 + 每周课表 */
+  $('#courseList').innerHTML = [...new Set([
+    ...state.tasks.map(x => x.course).filter(Boolean),
+    ...state.classes.map(c => c.name)
+  ])].map(c => `<option value="${esc(c)}">`).join('');
   f.reset();
   f.dueDate.value = t ? (t.due || '').slice(0, 10) || todayStr() : todayStr();
   f.dueTime.value = t ? ((t.due || '').slice(11, 16) || '23:59') : '23:59';
@@ -654,6 +834,54 @@ function openTaskDialog(t) {
   }
   dlg.showModal();
   f.title.focus();
+}
+
+/* ── 弹窗：安排（新建 / 编辑） ──────── */
+let blockEdit = null; /* null=新建；{kind:'block'|'class', id}=编辑 */
+
+function openBlockDialog() {
+  const f = $('#blockForm');
+  blockEdit = null;
+  f.reset();
+  $('#blockDateRow').classList.remove('hidden');
+  $('#blockWeekRow').classList.add('hidden');
+  $('#blockRepeatRow').classList.remove('hidden');
+  $('#blockDelete').classList.add('hidden');
+  f.date.value = todayStr();
+  $('#blockDialog').showModal();
+  f.name.focus();
+}
+
+function openBlockEdit(kind, id) {
+  const f = $('#blockForm');
+  blockEdit = { kind, id };
+  f.reset();
+  if (kind === 'class') {
+    const c = state.classes.find(x => x.id === id);
+    if (!c) return;
+    $('#blockDateRow').classList.add('hidden');
+    $('#blockWeekRow').classList.remove('hidden');
+    $('#blockRepeatRow').classList.add('hidden');
+    f.name.value = c.name;
+    f.start.value = c.start;
+    f.minutes.value = String(c.minutes);
+    f.location.value = c.location || '';
+    f.weekday.value = String(c.weekday);
+  } else {
+    const b = state.blocks.find(x => x.id === id);
+    if (!b) return;
+    $('#blockDateRow').classList.remove('hidden');
+    $('#blockWeekRow').classList.add('hidden');
+    $('#blockRepeatRow').classList.add('hidden');
+    f.name.value = b.name;
+    f.date.value = b.date;
+    f.start.value = b.start;
+    f.minutes.value = String(b.minutes);
+    f.kind.value = b.kind || '自习';
+  }
+  $('#blockDelete').classList.remove('hidden');
+  $('#blockDialog').showModal();
+  f.name.focus();
 }
 
 /* ── 事件绑定 ───────────────────────── */
@@ -679,27 +907,76 @@ function bindEvents() {
   });
 
   /* 日历 */
-  $('#btnAddBlock').addEventListener('click', () => {
-    const f = $('#blockForm');
-    f.reset();
-    f.date.value = todayStr();
-    $('#blockDialog').showModal();
-  });
+  $('#btnAddBlock').addEventListener('click', () => openBlockDialog());
   $('#wkPrev').addEventListener('click', () => { weekOffset -= 1; renderCalendar(); });
   $('#wkNext').addEventListener('click', () => { weekOffset += 1; renderCalendar(); });
   $('#wkToday').addEventListener('click', () => { weekOffset = 0; renderCalendar(); });
   $('#weekGrid').addEventListener('click', e => {
     const chip = e.target.closest('[data-del-item]');
     if (!chip) return;
-    const id = chip.dataset.delItem;
-    const kind = chip.dataset.kind;
-    const name = chip.dataset.name;
-    if (!confirm(`删除安排「${name}」？${kind === '课程' ? '\n（这是每周课表的一项，删了每周都没了）' : ''}`)) return;
-    if (kind === '课程') state.classes = state.classes.filter(c => c.id !== id);
-    else state.blocks = state.blocks.filter(b => b.id !== id);
+    openBlockEdit(chip.dataset.kind === '课程' ? 'class' : 'block', chip.dataset.delItem);
+  });
+
+  /* 考试管理 */
+  $('#btnAddExam').addEventListener('click', () => {
+    const name = $('#examName').value.trim();
+    const date = $('#examDate').value;
+    if (!name) return toast('请填写考试名');
+    if (!date) return toast('请选择考试日期');
+    state.exams.push({ id: uid(), name, date });
+    $('#examName').value = '';
     save();
-    refresh();
+    renderExams();
+    toast('已添加考试');
+  });
+  $('#examList').addEventListener('click', e => {
+    const btn = e.target.closest('[data-act="exam-del"]');
+    if (!btn) return;
+    const id = btn.closest('[data-exam]').dataset.exam;
+    const x = state.exams.find(x2 => x2.id === id);
+    if (!x) return;
+    if (!confirm(`删除考试「${x.name}」？`)) return;
+    state.exams = state.exams.filter(x2 => x2.id !== id);
+    save();
+    renderExams();
     toast('已删除');
+  });
+
+  /* 习惯打卡 */
+  $('#btnAddHabit').addEventListener('click', () => {
+    const name = $('#habitName').value.trim();
+    if (!name) return toast('请填写习惯名');
+    state.habits.push({ id: uid(), name, emoji: '📌' });
+    $('#habitName').value = '';
+    save();
+    renderHabits();
+    toast('已添加习惯');
+  });
+  $('#habitToday').addEventListener('click', e => {
+    const row = e.target.closest('[data-habit]');
+    if (!row || !e.target.closest('[data-act="habit-toggle"]')) return;
+    const id = row.dataset.habit;
+    const t = todayStr();
+    const arr = state.habitLog[t] = state.habitLog[t] || [];
+    if (arr.includes(id)) {
+      state.habitLog[t] = arr.filter(x => x !== id);
+    } else {
+      arr.push(id);
+      toast('打卡成功，继续保持 🔥');
+    }
+    save();
+    renderHabits();
+  });
+  $('#habitManage').addEventListener('click', e => {
+    const btn = e.target.closest('[data-act="habit-del"]');
+    if (!btn) return;
+    const id = btn.closest('[data-habit]').dataset.habit;
+    const h = state.habits.find(x => x.id === id);
+    if (!h) return;
+    if (!confirm(`删除习惯「${h.name}」？（打卡记录会保留）`)) return;
+    state.habits = state.habits.filter(x => x.id !== id);
+    save();
+    renderHabits();
   });
 
   /* 专注 */
@@ -709,9 +986,29 @@ function bindEvents() {
     const b = e.target.closest('button[data-min]');
     if (!b) return;
     if (F.running) return toast('专注进行中，先暂停再调整时长');
+    if (b.dataset.min === 'custom') {
+      F.total = $('#focusCustom').value * 60 || F.total;
+      F.left = F.total;
+      updateFocusUI();
+      $('#focusCustom').focus();
+      return;
+    }
     F.total = +b.dataset.min * 60;
     F.left = F.total;
     updateFocusUI();
+  });
+  $('#focusCustom').addEventListener('change', e => {
+    let v = Math.round(+e.target.value || 25);
+    v = Math.max(5, Math.min(180, v));
+    e.target.value = v;
+    if (F.running) return toast('专注进行中，先暂停再调整时长');
+    F.total = v * 60;
+    F.left = F.total;
+    updateFocusUI();
+  });
+  $('#noiseToggle').addEventListener('change', e => {
+    if (e.target.checked && !F.running) { e.target.checked = false; return toast('点「开始专注」后才会播放'); }
+    setNoise(F.running && e.target.checked);
   });
 
   /* 我的空间 */
@@ -748,10 +1045,14 @@ function bindEvents() {
         const data = JSON.parse(reader.result);
         if (!data || !Array.isArray(data.tasks)) throw new Error('bad');
         state = data;
-        state.profile = state.profile || { name: '同学' };
+        state.profile = state.profile || { name: '符同学' };
         state.classes = state.classes || [];
         state.blocks = state.blocks || [];
         state.focusLog = state.focusLog || {};
+        state.exams = state.exams || [];
+        state.habits = state.habits || [];
+        state.habitLog = state.habitLog || {};
+        state.pomodoroCount = state.pomodoroCount || 0;
         save();
         refresh();
         toast('已导入备份');
@@ -781,6 +1082,18 @@ function bindEvents() {
   /* 弹窗 */
   $('#taskCancel').addEventListener('click', () => $('#taskDialog').close());
   $('#blockCancel').addEventListener('click', () => $('#blockDialog').close());
+  $('#blockDelete').addEventListener('click', () => {
+    if (!blockEdit) return;
+    const { kind, id } = blockEdit;
+    if (!confirm('删除这个安排？')) return;
+    if (kind === 'class') state.classes = state.classes.filter(x => x.id !== id);
+    else state.blocks = state.blocks.filter(x => x.id !== id);
+    blockEdit = null;
+    $('#blockDialog').close();
+    save();
+    refresh();
+    toast('已删除');
+  });
   $('#taskForm').addEventListener('submit', e => {
     e.preventDefault();
     const f = e.target;
@@ -811,17 +1124,29 @@ function bindEvents() {
     const f = e.target;
     const name = f.name.value.trim();
     if (!name) return toast('请填写名称');
-    const date = f.date.value || todayStr();
     const start = f.start.value || '19:00';
     const minutes = +f.minutes.value || 60;
-    const kind = f.kind.value;
-    if (f.repeat.checked) {
-      state.classes.push({ id: uid(), name, weekday: weekdayOf(date), start, minutes, location: '' });
-      toast('已加入每周课表');
+    if (blockEdit) {
+      if (blockEdit.kind === 'class') {
+        const c = state.classes.find(x => x.id === blockEdit.id);
+        Object.assign(c, { name, start, minutes, weekday: +f.weekday.value, location: f.location.value.trim() });
+      } else {
+        const b = state.blocks.find(x => x.id === blockEdit.id);
+        Object.assign(b, { name, date: f.date.value || todayStr(), start, minutes, kind: f.kind.value });
+      }
+      toast('已更新安排');
     } else {
-      state.blocks.push({ id: uid(), name, date, start, minutes, kind });
-      toast('已添加安排');
+      const date = f.date.value || todayStr();
+      const kind = f.kind.value;
+      if (f.repeat.checked) {
+        state.classes.push({ id: uid(), name, weekday: weekdayOf(date), start, minutes, location: f.location.value.trim() });
+        toast('已加入每周课表');
+      } else {
+        state.blocks.push({ id: uid(), name, date, start, minutes, kind });
+        toast('已添加安排');
+      }
     }
+    blockEdit = null;
     $('#blockDialog').close();
     save();
     refresh();
