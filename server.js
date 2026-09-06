@@ -37,6 +37,65 @@ function localDateStr(d = new Date()) {
   return `${y}-${m}-${day}`;
 }
 
+/* 2026-2027 学年第一学期真实课表（第一周 2026-09-07 周一开始） */
+const SEMESTER_START = '2026-09-07';
+const PERIODS = { 1: ['08:00', 100], 3: ['10:00', 100], 5: ['14:00', 100], 7: ['16:05', 100], 9: ['19:00', 95] };
+function expandWeeks(text) {
+  const out = [];
+  for (const part of String(text).split(/[,，]/)) {
+    const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?\s*周?(（双）|\(双\)|双|（单）|\(单\)|单)?$/);
+    if (!m) continue;
+    const a = +m[1], b = m[2] ? +m[2] : a;
+    const par = m[3] || '';
+    for (let w = a; w <= b; w++) {
+      if (par.includes('双') && w % 2 !== 0) continue;
+      if (par.includes('单') && w % 2 !== 1) continue;
+      if (!out.includes(w)) out.push(w);
+    }
+  }
+  return out.sort((x, y) => x - y);
+}
+const TIMETABLE_SPEC = [
+  ['概率论与数理统计-10', 1, 3, 'A-518', '杜兰', '1-4,6-17'],
+  ['马克思主义基本原理-02', 1, 5, 'A-225', '孙江可', '1-4,6-17'],
+  ['线性代数进阶-01', 1, 7, 'A-402', '黄丘林', '1-4,6-9'],
+  ['大学英语中级(I)-53', 2, 1, 'E1-201', '吴启瑞', '1-7,9-17'],
+  ['大学物理(II)-03', 2, 3, 'B-407', '秦桄阳', '1-7,9-17'],
+  ['场论与复变函数-01', 2, 5, 'A-603', '安翔,吕志清', '1-6'],
+  ['敦煌学探秘-01', 2, 9, 'A-414', '董永强', '4-7,9-12'],
+  ['概率论与数理统计-10', 3, 1, 'A-518', '杜兰', '1-7,9-17'],
+  ['电路分析与电子线路BI-02', 3, 3, 'A-423', '李彩彩', '1-7,9-17'],
+  ['班级指导-265', 3, 7, 'A-203', '刘婧', '2-6双,10-16双'],
+  ['敦煌学探秘-01', 3, 9, 'A-414', '董永强', '4-7,9-12'],
+  ['大学物理(II)-03', 4, 1, 'B-407', '秦桄阳', '1-3,5-17'],
+  ['大学体育(III)-100 乒乓球俱乐部（上）', 4, 3, '', '苏振阳', '2-3,5-17'],
+  ['形势与政策(III)-07', 4, 5, 'B-206', '刘晓红', '11-14'],
+  ['马克思主义基本原理-02', 4, 7, 'A-225', '孙江可', '1-3,5-9'],
+  ['虚实之间：山水审美与山水艺术-02', 4, 9, 'A-318', '王志清', '5-12'],
+  ['场论与复变函数-01', 5, 1, 'A-603', '安翔,吕志清', '1-2,5-16'],
+  ['电路分析与电子线路BI-02', 5, 7, 'A-423', '李彩彩', '1-2,5-10'],
+  ['从课堂到生活：探寻健康的奥秘-01', 5, 9, 'A-226', '赵彩艳', '5-12']
+];
+function buildTimetable() {
+  return TIMETABLE_SPEC.map((c, i) => ({
+    id: 'tt' + String(i + 1).padStart(2, '0'),
+    name: c[0], weekday: c[1], kind: '课程',
+    start: PERIODS[c[2]][0], minutes: PERIODS[c[2]][1],
+    location: c[3], teacher: c[4], weeks: expandWeeks(c[5])
+  }));
+}
+const DEFAULT_EVENTS = [
+  { id: 'ev01', name: '中秋节放假', date: '2026-09-25', endDate: '', kind: '假期' },
+  { id: 'ev02', name: '国庆节放假（调休安排以学校通知为准）', date: '2026-10-01', endDate: '2026-10-07', kind: '假期' },
+  { id: 'ev03', name: '期中考试（预计，以教务通知为准）', date: '2026-11-04', endDate: '2026-11-05', kind: '考试' },
+  { id: 'ev04', name: '元旦放假', date: '2027-01-01', endDate: '', kind: '假期' },
+  { id: 'ev05', name: '期末考试（预计，共两周）', date: '2027-01-11', endDate: '2027-01-24', kind: '考试' },
+  { id: 'ev06', name: '第二学期上课（预计）', date: '2027-03-01', endDate: '', kind: '开学' },
+  { id: 'ev07', name: '第二学期期中考试（预计）', date: '2027-04-21', endDate: '2027-04-22', kind: '考试' },
+  { id: 'ev08', name: '春季运动会（预计）', date: '2027-04-28', endDate: '2027-04-29', kind: '校历' },
+  { id: 'ev09', name: '第二学期期末考试（预计）', date: '2027-06-15', endDate: '2027-06-28', kind: '考试' }
+];
+
 /* 第一次使用时的示例数据（日期随当天自动生成，保证打开就有内容可看） */
 function seedState() {
   const now = new Date();
@@ -47,27 +106,18 @@ function seedState() {
   };
   const today = shift(0);
   return {
-    version: 1,
+    version: 2,
+    settings: { semesterStart: SEMESTER_START, timetableV2: true },
     profile: { name: '符同学' },
     tasks: [
       { id: 't1', title: '完成高等数学第三章习题', course: '高等数学', due: `${today}T23:59`, estimateMin: 90, priority: '高', done: false, doneAt: null },
       { id: 't2', title: '阅读《社会学概论》第五章', course: '社会学概论', due: `${shift(-1)}T18:00`, estimateMin: 60, priority: '中', done: false, doneAt: null },
       { id: 't3', title: '准备英语演讲稿', course: '大学英语', due: `${shift(2)}T20:00`, estimateMin: 120, priority: '低', done: false, doneAt: null }
     ],
-    classes: [
-      { id: 'c1', name: '数据结构', weekday: 3, start: '14:00', minutes: 100, location: '教三 204' },
-      { id: 'c2', name: '高等数学', weekday: 1, start: '08:00', minutes: 100, location: '教一 101' },
-      { id: 'c3', name: '大学英语', weekday: 5, start: '10:00', minutes: 90, location: '外语楼 302' }
-    ],
-    blocks: [
-      { id: 'b1', name: '深度学习时间', date: today, start: '09:30', minutes: 45, kind: '自习' },
-      { id: 'b2', name: '整理今日复盘', date: today, start: '20:00', minutes: 30, kind: '复盘' }
-    ],
+    classes: buildTimetable(),
+    blocks: [],
     focusLog: { [today]: 150 },
-    exams: [
-      { id: 'e1', name: '高等数学期中考试', date: shift(14) },
-      { id: 'e2', name: '大学英语四级', date: shift(45) }
-    ],
+    events: DEFAULT_EVENTS,
     habits: [
       { id: 'h1', name: '背单词 20 个', emoji: '📚' },
       { id: 'h2', name: '晨跑 30 分钟', emoji: '🏃' },
