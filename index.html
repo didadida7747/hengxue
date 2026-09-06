@@ -28,6 +28,8 @@
     <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="5" cy="6" r="1.3" fill="currentColor"/><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="5" cy="18" r="1.3" fill="currentColor"/></symbol>
     <symbol id="i-share" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="5.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="18.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.3 10.8l6.4-4M8.3 13.2l6.4 4" stroke="currentColor" stroke-width="2"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0112 0v5l1.5 2.5h-15L6 16zM10 21a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 2.5C13.5 6 17 8 17 12.5A5 5 0 017 12.5c0-1.7.7-3.1 1.7-4.4.4 1 .9 1.7 1.8 2.2C10.2 8 10.8 5 12 2.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.8 2.8L16.5 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
 
@@ -50,6 +52,7 @@
       <button class="nav-btn" data-view="calendar"><svg><use href="#i-cal"/></svg>智能日历</button>
       <button class="nav-btn" data-view="load"><svg><use href="#i-chart"/></svg>负载分析</button>
       <button class="nav-btn" data-view="focus"><svg><use href="#i-timer"/></svg>专注模式</button>
+      <button class="nav-btn" data-view="habits"><svg><use href="#i-flame"/></svg>习惯打卡</button>
     </nav>
 
     <div class="nav-label">个人</div>
@@ -155,6 +158,17 @@
           <button class="linklike" data-goto="tasks">查看任务队列 <span>↗</span></button>
         </article>
 
+        <article class="card exam-card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">EXAM COUNTDOWN</span>
+              <h3>考试倒计时</h3>
+            </div>
+            <button class="linklike" data-goto="calendar">管理 <span>›</span></button>
+          </div>
+          <div id="examBody"></div>
+        </article>
+
         <article class="card today-tasks">
           <div class="card-head">
             <div>
@@ -204,7 +218,22 @@
         </div>
       </div>
       <div id="weekGrid" class="week-grid"></div>
-      <p class="hint">点一下某个安排可以删除它；添加时勾选「每周重复」，它就会像课表一样每周同一天出现。</p>
+      <p class="hint">点一下某个安排可以编辑它；添加时勾选「每周重复」，它就会像课表一样每周同一天出现。</p>
+
+      <article class="card exam-manage">
+        <div class="card-head">
+          <div>
+            <span class="mono-label">EXAMS</span>
+            <h3>考试倒计时</h3>
+          </div>
+        </div>
+        <div id="examList"></div>
+        <div class="me-row" style="margin-top:12px">
+          <input id="examName" class="input" type="text" maxlength="20" placeholder="考试名，如：高等数学期中">
+          <input id="examDate" class="input" type="date" style="max-width:170px">
+          <button class="btn btn-dark" id="btnAddExam">添加</button>
+        </div>
+      </article>
     </section>
 
     <!-- ═══ 负载分析 ═══ -->
@@ -252,6 +281,11 @@
           <button data-min="25" class="active">25 分钟</button>
           <button data-min="45">45 分钟</button>
           <button data-min="60">60 分钟</button>
+          <button data-min="custom">自定义</button>
+        </div>
+        <input id="focusCustom" class="input hidden" type="number" min="5" max="180" step="5" value="30" style="width:110px;text-align:center" title="自定义分钟数（5-180）">
+        <div class="focus-extras">
+          <label class="f-check"><input type="checkbox" id="noiseToggle"> 白噪音（雨声般的环境音，专注时播放）</label>
         </div>
         <div class="ring-wrap">
           <svg class="ring" viewBox="0 0 260 260">
@@ -268,6 +302,55 @@
           <button class="btn btn-big" id="btnReset">重置</button>
         </div>
         <p class="hint center">结束后，这段时间会自动记入「今日累计投入」。</p>
+        <div class="garden-box">
+          <span class="mono-label">FOCUS GARDEN</span>
+          <div class="garden" id="focusGarden"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 习惯打卡 ═══ -->
+    <section id="view-habits" class="view hidden">
+      <div class="page-head">
+        <div>
+          <span class="mono-label">DAILY HABITS</span>
+          <h2>习惯打卡</h2>
+        </div>
+      </div>
+      <div class="habits-grid">
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">TODAY</span>
+              <h3>今日打卡 <span class="count" id="habitCount"></span></h3>
+            </div>
+            <span class="pill pill-sync" id="habitStreakPill"></span>
+          </div>
+          <div id="habitToday"></div>
+        </article>
+        <article class="card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">MANAGE</span>
+              <h3>我的习惯</h3>
+            </div>
+          </div>
+          <div class="me-row" style="margin-bottom:12px">
+            <input id="habitName" class="input" type="text" maxlength="14" placeholder="习惯名，如：背单词 20 个">
+            <button class="btn btn-dark" id="btnAddHabit">添加</button>
+          </div>
+          <div id="habitManage"></div>
+          <p class="hint">坚持每天打卡，连续天数会越来越长；点右侧 × 可删除习惯（打卡记录保留）。</p>
+        </article>
+        <article class="card habit-heat-card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">LAST 14 DAYS</span>
+              <h3>打卡记录</h3>
+            </div>
+          </div>
+          <div id="habitHeat"></div>
+        </article>
       </div>
     </section>
 
@@ -322,9 +405,12 @@
     <button class="bn-btn" data-view="calendar"><svg><use href="#i-cal"/></svg><span>日历</span></button>
     <button class="bn-btn" data-view="load"><svg><use href="#i-chart"/></svg><span>负载</span></button>
     <button class="bn-btn" data-view="focus"><svg><use href="#i-timer"/></svg><span>专注</span></button>
+    <button class="bn-btn" data-view="habits"><svg><use href="#i-flame"/></svg><span>打卡</span></button>
     <button class="bn-btn" data-view="me"><svg><use href="#i-user"/></svg><span>我的</span></button>
   </nav>
 </div>
+
+<datalist id="courseList"></datalist>
 
 <!-- 新建 / 编辑 任务 -->
 <dialog id="taskDialog" class="dlg">
@@ -333,7 +419,7 @@
     <label class="f-label">任务名称 <i>*</i></label>
     <input class="input" name="title" type="text" maxlength="60" placeholder="比如：完成高数第三章习题" required>
     <label class="f-label">课程 / 分类</label>
-    <input class="input" name="course" type="text" maxlength="20" placeholder="比如：高等数学">
+    <input class="input" name="course" type="text" maxlength="20" list="courseList" placeholder="比如：高等数学">
     <div class="f-grid">
       <div>
         <label class="f-label">截止日期</label>
@@ -378,7 +464,7 @@
     <h3>添加安排</h3>
     <label class="f-label">名称 <i>*</i></label>
     <input class="input" name="name" type="text" maxlength="30" placeholder="比如：数据结构 / 深度学习时间" required>
-    <div class="f-grid">
+    <div class="f-grid" id="blockDateRow">
       <div>
         <label class="f-label">日期</label>
         <input class="input" name="date" type="date" required>
@@ -391,6 +477,24 @@
           <option value="复盘">复盘</option>
           <option value="其他">其他</option>
         </select>
+      </div>
+    </div>
+    <div class="f-grid hidden" id="blockWeekRow">
+      <div>
+        <label class="f-label">星期几</label>
+        <select class="input" name="weekday">
+          <option value="1">周一</option>
+          <option value="2">周二</option>
+          <option value="3">周三</option>
+          <option value="4">周四</option>
+          <option value="5">周五</option>
+          <option value="6">周六</option>
+          <option value="0">周日</option>
+        </select>
+      </div>
+      <div>
+        <label class="f-label">上课地点</label>
+        <input class="input" name="location" type="text" maxlength="20" placeholder="比如：教三 204">
       </div>
     </div>
     <div class="f-grid">
@@ -410,8 +514,9 @@
         </select>
       </div>
     </div>
-    <label class="f-check"><input type="checkbox" name="repeat"> 每周重复（像课表一样，每周同一天出现）</label>
+    <label class="f-check" id="blockRepeatRow"><input type="checkbox" name="repeat"> 每周重复（像课表一样，每周同一天出现）</label>
     <menu class="dlg-menu">
+      <button type="button" class="btn btn-danger hidden" id="blockDelete">删除</button>
       <button type="button" class="btn" id="blockCancel">取消</button>
       <button type="submit" class="btn btn-dark">保存</button>
     </menu>
