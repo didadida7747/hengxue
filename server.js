@@ -63,7 +63,18 @@ function seedState() {
       { id: 'b1', name: '深度学习时间', date: today, start: '09:30', minutes: 45, kind: '自习' },
       { id: 'b2', name: '整理今日复盘', date: today, start: '20:00', minutes: 30, kind: '复盘' }
     ],
-    focusLog: { [today]: 150 }
+    focusLog: { [today]: 150 },
+    exams: [
+      { id: 'e1', name: '高等数学期中考试', date: shift(14) },
+      { id: 'e2', name: '大学英语四级', date: shift(45) }
+    ],
+    habits: [
+      { id: 'h1', name: '背单词 20 个', emoji: '📚' },
+      { id: 'h2', name: '晨跑 30 分钟', emoji: '🏃' },
+      { id: 'h3', name: '睡前阅读 20 页', emoji: '🌙' }
+    ],
+    habitLog: { [today]: ['h1'] },
+    pomodoroCount: 3
   };
 }
 
