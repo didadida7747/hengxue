@@ -102,7 +102,7 @@
           <span class="corner-mono light">STUDY LOAD</span>
         </article>
 
-        <article class="card next-card">
+        <article class="card next-card" id="nextCard" role="button" tabindex="0" title="点开查看本周课表">
           <span class="corner-mono dark next-flag">NEXT</span>
           <span class="label-sub" id="nextWhen">下一节课</span>
           <div class="next-name" id="nextName">—</div>
@@ -118,7 +118,7 @@
           <span class="stat-sub" id="statTasksSub"></span>
         </article>
 
-        <article class="card stat-card stat-blue">
+        <article class="card stat-card stat-blue" id="statFocusCard" role="button" tabindex="0" title="点开查看今日专注明细">
           <span class="stat-arrow">↗</span>
           <div class="stat-ic ic-blue"><svg><use href="#i-clock"/></svg></div>
           <span class="stat-label">今日累计投入</span>
@@ -432,18 +432,38 @@
 
 <datalist id="courseList"></datalist>
 
+<!-- 今日专注明细 -->
+<dialog id="focusDialog" class="dlg">
+  <h3>今日专注</h3>
+  <div class="fd-head">
+    <b id="fdTotal">0</b>
+    <span id="fdCount"></span>
+  </div>
+  <div class="fd-bars" id="fdBars"></div>
+  <div class="fd-legend"><span>0 点</span><span>6 点</span><span>12 点</span><span>18 点</span><span>24 点</span></div>
+  <div id="fdList" class="fd-list"></div>
+  <menu class="dlg-menu">
+    <button type="button" class="btn btn-dark" id="fdClose">关闭</button>
+  </menu>
+</dialog>
+
 <!-- 新建 / 编辑 任务 -->
 <dialog id="taskDialog" class="dlg">
   <form id="taskForm">
     <h3 id="taskDlgTitle">新建任务</h3>
+    <label class="f-label">任务类型</label>
+    <select class="input" name="taskType" id="taskType">
+      <option value="once">单次任务（有截止时间，做完即完成）</option>
+      <option value="daily">每日打卡（每天重复出现，按天打卡）</option>
+    </select>
     <label class="f-label">任务名称 <i>*</i></label>
     <input class="input" name="title" type="text" maxlength="60" placeholder="比如：完成高数第三章习题" required>
     <label class="f-label">课程 / 分类</label>
     <input class="input" name="course" type="text" maxlength="20" list="courseList" placeholder="比如：高等数学">
-    <div class="f-grid">
+    <div class="f-grid" id="taskDueRow">
       <div>
-        <label class="f-label">截止日期</label>
-        <input class="input" name="dueDate" type="date" required>
+        <label class="f-label">截止日期（可选今天在内的任何日期）</label>
+        <input class="input" name="dueDate" type="date">
       </div>
       <div>
         <label class="f-label">截止时间</label>
