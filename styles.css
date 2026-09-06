@@ -739,3 +739,142 @@ input, select { font-family: inherit; }
   .week-chart { height: 200px; }
   .f-grid { grid-template-columns: 1fr; }
 }
+
+/* ════════════════════════════════════════
+   v2 新增：考试倒计时 / 习惯打卡 / 小花园
+   ════════════════════════════════════════ */
+
+/* 考试倒计时卡（首页） */
+.exam-card { background: var(--red-soft); display: flex; flex-direction: column; }
+.exam-body { margin-top: 2px; }
+.exam-days { display: flex; align-items: baseline; gap: 8px; }
+.exam-days b { font-size: 46px; font-weight: 800; line-height: 1.1; }
+.exam-days span { font-size: 14px; color: var(--muted); font-weight: 600; }
+.exam-days b.today { color: var(--red); }
+.exam-name { margin-top: 4px; font-size: 15px; font-weight: 700; }
+.exam-date { font-size: 12px; color: var(--muted); }
+
+/* 今日任务改为 2/3 宽，与考试卡同行 */
+.grid-overview .today-tasks { grid-column: span 2; }
+
+/* 任务分组标题 */
+.group-head {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .14em;
+  color: var(--muted);
+  margin: 14px 2px 2px;
+  text-transform: uppercase;
+}
+.group-head:first-child { margin-top: 0; }
+.group-head.overdue { color: var(--red); }
+
+/* 习惯打卡页 */
+.habits-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  max-width: 1080px;
+}
+.habits-grid .habit-heat-card { grid-column: span 2; }
+
+.habit-row {
+  display: flex; align-items: center; gap: 12px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 11px 14px;
+}
+.habit-row + .habit-row { margin-top: 10px; }
+.habit-row.done { background: var(--green-soft); }
+.habit-emoji {
+  width: 34px; height: 34px; flex: none;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--yellow-soft);
+  display: grid; place-items: center;
+  font-size: 17px;
+}
+.habit-main { flex: 1; min-width: 0; }
+.habit-main b { font-size: 14.5px; display: block; }
+.habit-main span { font-size: 11.5px; color: var(--muted); }
+.streak-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 9px;
+  color: #B03A22;
+}
+.icon-btn.ghost { border-color: var(--faint); color: var(--muted); }
+.icon-btn.ghost:hover { background: var(--red-soft); color: #B03A22; }
+
+.habit-heat-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 2px;
+}
+.habit-heat-row + .habit-heat-row { border-top: 2px dashed rgba(25,28,34,.12); }
+.habit-heat-name {
+  width: 130px; flex: none;
+  font-size: 13px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.heat-cells { display: flex; gap: 5px; flex: 1; }
+.heat-cell {
+  flex: 1; max-width: 26px; aspect-ratio: 1;
+  border: 1.5px solid var(--faint);
+  border-radius: 5px;
+  background: #fff;
+}
+.heat-cell.on { background: var(--yellow); border-color: var(--line); }
+.heat-cell.today { border-width: 2.5px; border-color: var(--ink); }
+.heat-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11px; color: var(--muted); }
+.heat-legend .heat-cell { flex: none; width: 12px; }
+
+/* 专注页：白噪音 + 小花园 */
+.focus-extras { margin: 4px 0 14px; }
+.focus-extras .f-check { margin: 0; }
+
+.garden-box {
+  margin-top: 22px;
+  border-top: 2px dashed rgba(25,28,34,.18);
+  padding-top: 14px;
+  width: 100%;
+  text-align: center;
+}
+.garden { font-size: 24px; letter-spacing: 4px; line-height: 1.6; min-height: 34px; }
+.garden .sprout { font-size: 13px; color: var(--muted); letter-spacing: 0; display: block; }
+
+/* 日历页：考试管理 */
+.exam-manage { margin-top: 18px; max-width: 900px; }
+.exam-row {
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 2px dashed rgba(25,28,34,.12);
+  padding: 10px 2px;
+}
+.exam-row:last-of-type { border-bottom: 0; }
+.exam-row .exam-title { flex: 1; min-width: 0; }
+.exam-row .exam-title b { font-size: 14.5px; display: block; }
+.exam-row .exam-title span { font-size: 12px; color: var(--muted); }
+.exam-row .pill { flex: none; }
+.exam-row .icon-btn { flex: none; }
+
+.exam-empty { color: var(--faint); font-size: 13px; padding: 6px 0; }
+
+/* 弹窗里的课程 datalist 无需样式 */
+
+@media (max-width: 960px) {
+  .habits-grid { grid-template-columns: 1fr; }
+  .habits-grid .habit-heat-card { grid-column: auto; }
+  .grid-overview .today-tasks { grid-column: span 2; }
+  .bn-btn { font-size: 10px; }
+  .exam-manage .me-row { flex-wrap: wrap; }
+}
+
+@media (max-width: 560px) {
+  .grid-overview .today-tasks { grid-column: auto; }
+  .exam-days b { font-size: 38px; }
+  .habit-heat-name { width: 96px; font-size: 12px; }
+  .garden { font-size: 20px; }
+}
