@@ -982,6 +982,49 @@ body[data-view="me"] .avatar { box-shadow: 0 0 0 3px var(--yellow); }
 
 /* 弹窗里的课程 datalist 无需样式 */
 
+/* 可点击卡片 */
+.next-card, #statFocusCard { cursor: pointer; transition: transform .08s; }
+.next-card:active, #statFocusCard:active { transform: scale(.985); }
+.next-card .next-hint {
+  position: absolute; right: 16px; bottom: 40px;
+  font-size: 11px; color: #5A6B80;
+}
+
+/* 今日专注明细 */
+.fd-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.fd-head b { font-size: 30px; font-weight: 800; }
+.fd-head span { font-size: 12.5px; color: var(--muted); }
+.fd-bars {
+  display: flex; gap: 3px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  padding: 6px;
+  background: #fff;
+  margin-bottom: 4px;
+}
+.fd-bar {
+  flex: 1; height: 34px;
+  border-radius: 3px;
+  background: #EDE7D8;
+}
+.fd-bar.on { background: var(--yellow); border: 1.5px solid var(--ink); }
+.fd-legend {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 9.5px;
+  color: var(--faint); margin-bottom: 12px;
+}
+.fd-list { display: flex; flex-direction: column; }
+.fd-row {
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 2px dashed rgba(25,28,34,.12);
+  padding: 9px 2px;
+  font-size: 13.5px;
+}
+.fd-row:last-child { border-bottom: 0; }
+.fd-row .fd-time { font-family: var(--mono); font-size: 12px; color: var(--muted); flex: 1; }
+.fd-row .fd-min { font-weight: 800; }
+.fd-row .fd-task { color: var(--muted); font-size: 12px; max-width: 40%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 @media (max-width: 960px) {
   .habits-grid { grid-template-columns: 1fr; }
   .habits-grid .habit-heat-card { grid-column: auto; }
