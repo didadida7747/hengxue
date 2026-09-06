@@ -80,7 +80,7 @@
           <kbd>Ctrl K</kbd>
           <div class="search-drop" id="searchDrop"></div>
         </div>
-        <div class="avatar" id="avatar">符</div>
+        <button class="avatar" id="avatar" title="我的空间">符</button>
       </div>
     </header>
 
@@ -98,6 +98,7 @@
           <div class="load-bar"><i id="loadFill"></i></div>
           <div class="load-scale"><span>轻松</span><span>适中</span><span>繁忙</span></div>
           <p class="load-summary" id="loadSummary"></p>
+          <button class="linklike load-more" data-goto="load">查看负载分析 <span>›</span></button>
           <span class="corner-mono light">STUDY LOAD</span>
         </article>
 
@@ -416,17 +417,18 @@
 
   </main>
 
-  <!-- 底部导航（手机端） -->
+  <!-- 底部导航（手机端）：5 个主入口，负载从首页进、我的从头像进 -->
   <nav class="bottomnav">
     <button class="bn-btn" data-view="overview"><svg><use href="#i-grid"/></svg><span>总览</span></button>
     <button class="bn-btn" data-view="tasks"><svg><use href="#i-tasks"/></svg><span>任务</span></button>
     <button class="bn-btn" data-view="calendar"><svg><use href="#i-cal"/></svg><span>日历</span></button>
-    <button class="bn-btn" data-view="load"><svg><use href="#i-chart"/></svg><span>负载</span></button>
-    <button class="bn-btn" data-view="focus"><svg><use href="#i-timer"/></svg><span>专注</span></button>
     <button class="bn-btn" data-view="habits"><svg><use href="#i-flame"/></svg><span>打卡</span></button>
-    <button class="bn-btn" data-view="me"><svg><use href="#i-user"/></svg><span>我的</span></button>
+    <button class="bn-btn" data-view="focus"><svg><use href="#i-timer"/></svg><span>专注</span></button>
   </nav>
 </div>
+
+<!-- 快速添加任务（手机端悬浮按钮） -->
+<button class="fab" id="btnFab" title="快速添加任务" aria-label="快速添加任务">＋</button>
 
 <datalist id="courseList"></datalist>
 
