@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>衡学 · Study Balance</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-grid" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-tasks" viewBox="0 0 24 24"><path d="M4 6.5l2 2 3.5-3.5M4 15.5l2 2 3.5-3.5M12 6.5h8M12 15.5h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v5M16 3v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9v4l3 2M9 2h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 21c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L20 8l-4-4L4 16v4zM14 6l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2L5 13.5h5.5L10 22l8.5-11.5H13L13 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4h6a2 2 0 012 2v14a2 2 0 00-2-2H5V4zM19 4h-6a2 2 0 00-2 2v14a2 2 0 012-2h6V4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="5" cy="6" r="1.3" fill="currentColor"/><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="5" cy="18" r="1.3" fill="currentColor"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="5.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="18.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.3 10.8l6.4-4M8.3 13.2l6.4 4" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0112 0v5l1.5 2.5h-15L6 16zM10 21a2 2 0 004 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- 左侧边栏（电脑端） -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo">衡</span>
+      <div class="brand-text">
+        <b>衡学</b>
+        <span>STUDY BALANCE</span>
+      </div>
+    </div>
+
+    <div class="nav-label">工作台</div>
+    <nav class="nav">
+      <button class="nav-btn" data-view="overview"><svg><use href="#i-grid"/></svg>今日总览</button>
+      <button class="nav-btn" data-view="tasks"><svg><use href="#i-tasks"/></svg>任务清单</button>
+      <button class="nav-btn" data-view="calendar"><svg><use href="#i-cal"/></svg>智能日历</button>
+      <button class="nav-btn" data-view="load"><svg><use href="#i-chart"/></svg>负载分析</button>
+      <button class="nav-btn" data-view="focus"><svg><use href="#i-timer"/></svg>专注模式</button>
+    </nav>
+
+    <div class="nav-label">个人</div>
+    <nav class="nav">
+      <button class="nav-btn" data-view="me"><svg><use href="#i-user"/></svg>我的空间</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <span class="dot-ok"></span><span>数据保存在本机</span>
+    </div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <main class="main">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-date" id="topbarDate"></span>
+        <h1 id="greeting">你好</h1>
+      </div>
+      <div class="topbar-right">
+        <div class="searchbox">
+          <svg class="ic"><use href="#i-search"/></svg>
+          <input id="searchInput" type="text" placeholder="搜索任务、课程..." autocomplete="off">
+          <kbd>Ctrl K</kbd>
+          <div class="search-drop" id="searchDrop"></div>
+        </div>
+        <div class="avatar" id="avatar">符</div>
+      </div>
+    </header>
+
+    <!-- ═══ 今日总览 ═══ -->
+    <section id="view-overview" class="view">
+      <div class="grid-overview">
+
+        <article class="card load-card">
+          <div class="load-strip"><i id="loadStrip"></i></div>
+          <div class="load-head">
+            <span class="label-light">今日学习负载</span>
+            <span class="pill pill-yellow" id="loadBadge">状态良好</span>
+          </div>
+          <div class="load-num"><span id="loadScore">0</span><span class="load-den">/100</span></div>
+          <div class="load-bar"><i id="loadFill"></i></div>
+          <div class="load-scale"><span>轻松</span><span>适中</span><span>繁忙</span></div>
+          <p class="load-summary" id="loadSummary"></p>
+          <span class="corner-mono light">STUDY LOAD</span>
+        </article>
+
+        <article class="card next-card">
+          <span class="corner-mono dark next-flag">NEXT</span>
+          <span class="label-sub" id="nextWhen">下一节课</span>
+          <div class="next-name" id="nextName">—</div>
+          <div class="next-meta" id="nextMeta"></div>
+          <svg class="next-deco"><use href="#i-book"/></svg>
+        </article>
+
+        <article class="card stat-card stat-red">
+          <span class="stat-arrow">↗</span>
+          <div class="stat-ic ic-red"><svg><use href="#i-list"/></svg></div>
+          <span class="stat-label">待完成任务</span>
+          <b class="stat-num" id="statTasks">0</b>
+          <span class="stat-sub" id="statTasksSub"></span>
+        </article>
+
+        <article class="card stat-card stat-blue">
+          <span class="stat-arrow">↗</span>
+          <div class="stat-ic ic-blue"><svg><use href="#i-clock"/></svg></div>
+          <span class="stat-label">今日累计投入</span>
+          <b class="stat-num" id="statFocus">0h</b>
+          <span class="stat-sub" id="statFocusSub"></span>
+        </article>
+
+        <article class="card stat-card stat-green">
+          <span class="stat-arrow">↗</span>
+          <div class="stat-ic ic-green"><svg><use href="#i-target"/></svg></div>
+          <span class="stat-label">今日完成率</span>
+          <b class="stat-num" id="statRate">0%</b>
+          <span class="stat-sub" id="statRateSub"></span>
+        </article>
+
+        <article class="card rhythm-card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">TODAY'S RHYTHM</span>
+              <h3>今日节奏</h3>
+            </div>
+            <span class="pill pill-sync"><i class="dot-ok"></i>已同步</span>
+          </div>
+          <div id="rhythmList"></div>
+        </article>
+
+        <article class="card momentum-card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">MOMENTUM</span>
+              <h3>学习势能</h3>
+            </div>
+            <svg class="zap"><use href="#i-zap"/></svg>
+          </div>
+          <div class="mom-num"><span id="momScore">0</span><span class="mom-den">/100</span></div>
+          <div class="mom-bar"><i id="momFill"></i></div>
+          <p class="mom-hint" id="momHint"></p>
+          <button class="linklike" data-goto="tasks">查看任务队列 <span>↗</span></button>
+        </article>
+
+        <article class="card today-tasks">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">PLAN FOR TODAY</span>
+              <h3>今天的任务 <span class="count" id="ttCount"></span></h3>
+            </div>
+            <button class="linklike" data-goto="tasks">查看全部 <span>›</span></button>
+          </div>
+          <div id="todayList" class="tasklist"></div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ═══ 任务清单 ═══ -->
+    <section id="view-tasks" class="view hidden">
+      <div class="page-head">
+        <div>
+          <span class="mono-label">ALL TASKS</span>
+          <h2>任务清单</h2>
+        </div>
+        <button class="btn btn-dark" id="btnAddTask">＋ 新建任务</button>
+      </div>
+      <div class="segmented" id="taskFilter">
+        <button data-f="all" class="active">全部</button>
+        <button data-f="open">进行中</button>
+        <button data-f="done">已完成</button>
+      </div>
+      <div id="taskList" class="tasklist page-list"></div>
+    </section>
+
+    <!-- ═══ 智能日历 ═══ -->
+    <section id="view-calendar" class="view hidden">
+      <div class="page-head">
+        <div>
+          <span class="mono-label">SMART CALENDAR</span>
+          <h2>智能日历</h2>
+        </div>
+        <button class="btn btn-dark" id="btnAddBlock">＋ 添加安排</button>
+      </div>
+      <div class="week-nav">
+        <button class="btn btn-sm" id="wkPrev">‹ 上一周</button>
+        <b id="wkLabel"></b>
+        <div class="week-nav-r">
+          <button class="btn btn-sm" id="wkToday">回到今天</button>
+          <button class="btn btn-sm" id="wkNext">下一周 ›</button>
+        </div>
+      </div>
+      <div id="weekGrid" class="week-grid"></div>
+      <p class="hint">点一下某个安排可以删除它；添加时勾选「每周重复」，它就会像课表一样每周同一天出现。</p>
+    </section>
+
+    <!-- ═══ 负载分析 ═══ -->
+    <section id="view-load" class="view hidden">
+      <div class="page-head">
+        <div>
+          <span class="mono-label">LOAD ANALYSIS</span>
+          <h2>负载分析</h2>
+        </div>
+      </div>
+      <div class="load-grid">
+        <article class="card chart-card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">NEXT 7 DAYS</span>
+              <h3>未来 7 天安排</h3>
+            </div>
+          </div>
+          <div id="weekChart" class="week-chart"></div>
+        </article>
+        <article class="card summary-card">
+          <div class="card-head">
+            <div>
+              <span class="mono-label">THIS WEEK</span>
+              <h3>本周小结</h3>
+            </div>
+          </div>
+          <div id="loadSummaryBox"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ═══ 专注模式 ═══ -->
+    <section id="view-focus" class="view hidden">
+      <div class="page-head">
+        <div>
+          <span class="mono-label">FOCUS MODE</span>
+          <h2>专注模式</h2>
+        </div>
+      </div>
+      <div class="focus-wrap card">
+        <label class="focus-label">这次专注想做什么？</label>
+        <select id="focusTask" class="focus-select"></select>
+        <div class="segmented focus-durs" id="focusDurs">
+          <button data-min="25" class="active">25 分钟</button>
+          <button data-min="45">45 分钟</button>
+          <button data-min="60">60 分钟</button>
+        </div>
+        <div class="ring-wrap">
+          <svg class="ring" viewBox="0 0 260 260">
+            <circle cx="130" cy="130" r="116" class="ring-track"/>
+            <circle cx="130" cy="130" r="116" class="ring-fill" id="ringFill"/>
+          </svg>
+          <div class="ring-text">
+            <b id="focusTime">25:00</b>
+            <span id="focusState">准备开始</span>
+          </div>
+        </div>
+        <div class="focus-btns">
+          <button class="btn btn-dark btn-big" id="btnStart">开始专注</button>
+          <button class="btn btn-big" id="btnReset">重置</button>
+        </div>
+        <p class="hint center">结束后，这段时间会自动记入「今日累计投入」。</p>
+      </div>
+    </section>
+
+    <!-- ═══ 我的空间 ═══ -->
+    <section id="view-me" class="view hidden">
+      <div class="page-head">
+        <div>
+          <span class="mono-label">MY SPACE</span>
+          <h2>我的空间</h2>
+        </div>
+      </div>
+      <div class="me-grid">
+        <article class="card me-card">
+          <div class="card-head"><div><h3>称呼</h3><p class="me-sub">首页会显示「早上好，××」</p></div></div>
+          <div class="me-row">
+            <input id="nameInput" class="input" type="text" maxlength="12" value="符同学" placeholder="比如：符同学">
+            <button class="btn btn-dark" id="btnSaveName">保存</button>
+          </div>
+        </article>
+
+        <article class="card me-card hidden" id="standaloneCard">
+          <div class="card-head"><div><h3>数据存在哪里？</h3><p class="me-sub">这一版是「网页版」，和家里电脑的版本数据不互通</p></div></div>
+          <p style="font-size:13.5px">网页版的数据保存在「这台设备的这个浏览器」里：手机和电脑各自有一份，<b>不会自动同步</b>。</p>
+          <p class="hint" style="margin-top:8px">想在两台设备之间搬家：在 A 设备「导出备份」下载文件，传到 B 设备后「导入备份」即可。另外，清理浏览器缓存或使用无痕模式可能导致数据丢失，重要进度记得导出备份。</p>
+        </article>
+
+        <article class="card me-card" id="lanCard">
+          <div class="card-head"><div><h3>手机 / 平板访问</h3><p class="me-sub">手机连上和电脑同一个 Wi-Fi 后，在浏览器输入下面的地址</p></div></div>
+          <div id="lanUrls" class="lan-list"></div>
+          <p class="hint">也可以把页面「添加到主屏幕」，之后像 App 一样点开。电脑关机或软件没开时，手机会连不上，属正常现象。</p>
+        </article>
+
+        <article class="card me-card">
+          <div class="card-head"><div><h3>我的数据</h3><p class="me-sub" id="dataSub2"></p></div></div>
+          <div class="me-btns">
+            <button class="btn" id="btnExport">导出备份</button>
+            <button class="btn" id="btnImport">导入备份</button>
+            <button class="btn btn-danger" id="btnReset">重置为示例数据</button>
+            <input type="file" id="importFile" accept=".json,application/json" hidden>
+          </div>
+          <p class="hint">换电脑或怕丢失时，先「导出备份」存好文件，再到新地方「导入备份」。</p>
+        </article>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部导航（手机端） -->
+  <nav class="bottomnav">
+    <button class="bn-btn" data-view="overview"><svg><use href="#i-grid"/></svg><span>总览</span></button>
+    <button class="bn-btn" data-view="tasks"><svg><use href="#i-tasks"/></svg><span>任务</span></button>
+    <button class="bn-btn" data-view="calendar"><svg><use href="#i-cal"/></svg><span>日历</span></button>
+    <button class="bn-btn" data-view="load"><svg><use href="#i-chart"/></svg><span>负载</span></button>
+    <button class="bn-btn" data-view="focus"><svg><use href="#i-timer"/></svg><span>专注</span></button>
+    <button class="bn-btn" data-view="me"><svg><use href="#i-user"/></svg><span>我的</span></button>
+  </nav>
+</div>
+
+<!-- 新建 / 编辑 任务 -->
+<dialog id="taskDialog" class="dlg">
+  <form id="taskForm">
+    <h3 id="taskDlgTitle">新建任务</h3>
+    <label class="f-label">任务名称 <i>*</i></label>
+    <input class="input" name="title" type="text" maxlength="60" placeholder="比如：完成高数第三章习题" required>
+    <label class="f-label">课程 / 分类</label>
+    <input class="input" name="course" type="text" maxlength="20" placeholder="比如：高等数学">
+    <div class="f-grid">
+      <div>
+        <label class="f-label">截止日期</label>
+        <input class="input" name="dueDate" type="date" required>
+      </div>
+      <div>
+        <label class="f-label">截止时间</label>
+        <input class="input" name="dueTime" type="time" value="23:59">
+      </div>
+    </div>
+    <div class="f-grid">
+      <div>
+        <label class="f-label">预计用时</label>
+        <select class="input" name="estimateMin">
+          <option value="30">30 分钟</option>
+          <option value="45">45 分钟</option>
+          <option value="60" selected>1 小时</option>
+          <option value="90">1.5 小时</option>
+          <option value="120">2 小时</option>
+          <option value="180">3 小时</option>
+        </select>
+      </div>
+      <div>
+        <label class="f-label">优先级</label>
+        <select class="input" name="priority">
+          <option value="高">高</option>
+          <option value="中" selected>中</option>
+          <option value="低">低</option>
+        </select>
+      </div>
+    </div>
+    <menu class="dlg-menu">
+      <button type="button" class="btn" id="taskCancel">取消</button>
+      <button type="submit" class="btn btn-dark">保存</button>
+    </menu>
+  </form>
+</dialog>
+
+<!-- 添加安排（日历） -->
+<dialog id="blockDialog" class="dlg">
+  <form id="blockForm">
+    <h3>添加安排</h3>
+    <label class="f-label">名称 <i>*</i></label>
+    <input class="input" name="name" type="text" maxlength="30" placeholder="比如：数据结构 / 深度学习时间" required>
+    <div class="f-grid">
+      <div>
+        <label class="f-label">日期</label>
+        <input class="input" name="date" type="date" required>
+      </div>
+      <div>
+        <label class="f-label">类型</label>
+        <select class="input" name="kind">
+          <option value="自习">自习</option>
+          <option value="课程">课程</option>
+          <option value="复盘">复盘</option>
+          <option value="其他">其他</option>
+        </select>
+      </div>
+    </div>
+    <div class="f-grid">
+      <div>
+        <label class="f-label">开始时间</label>
+        <input class="input" name="start" type="time" value="19:00" required>
+      </div>
+      <div>
+        <label class="f-label">时长（分钟）</label>
+        <select class="input" name="minutes">
+          <option value="30">30</option>
+          <option value="45">45</option>
+          <option value="60">60</option>
+          <option value="90">90</option>
+          <option value="100">100</option>
+          <option value="120">120</option>
+        </select>
+      </div>
+    </div>
+    <label class="f-check"><input type="checkbox" name="repeat"> 每周重复（像课表一样，每周同一天出现）</label>
+    <menu class="dlg-menu">
+      <button type="button" class="btn" id="blockCancel">取消</button>
+      <button type="submit" class="btn btn-dark">保存</button>
+    </menu>
+  </form>
+</dialog>
+
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
