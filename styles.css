@@ -746,6 +746,119 @@ input, select { font-family: inherit; }
 }
 
 /* ════════════════════════════════════════
+   移动端 UI 优化（借鉴滴答清单 / Things / Forest）
+   ════════════════════════════════════════ */
+
+/* 页面切换动效（只动位移不动透明度，避免个别省电环境下页面卡在透明状态） */
+.view { animation: viewIn .2s ease; }
+@keyframes viewIn {
+  from { transform: translateY(10px); }
+  to { transform: none; }
+}
+
+/* 头像可点击 */
+.avatar { cursor: pointer; }
+body[data-view="me"] .avatar { box-shadow: 0 0 0 3px var(--yellow); }
+
+/* 悬浮快速添加按钮：仅手机端显示，任务页隐藏（那里已有新建按钮） */
+.fab {
+  display: none;
+  position: fixed;
+  right: 16px;
+  bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  background: var(--yellow);
+  border: 2.5px solid var(--line);
+  box-shadow: 4px 4px 0 rgba(25, 28, 34, .85);
+  font-size: 27px; font-weight: 700; color: var(--ink);
+  line-height: 1;
+  align-items: center; justify-content: center;
+  padding: 0 0 5px;
+  z-index: 90;
+  transition: transform .1s;
+}
+.fab:active { transform: scale(.92); }
+
+/* 首页负载卡里的“负载分析”入口：仅手机端显示 */
+.load-more { display: none; }
+.load-card .load-more { color: #C3C8D3; align-self: flex-start; margin: 0 20px 14px; }
+.load-card .load-more span { color: var(--yellow); }
+
+@media (max-width: 960px) {
+  .fab { display: flex; }
+  body[data-view="tasks"] .fab { display: none; }
+  .load-more { display: inline-flex; }
+
+  /* 顶栏吸顶 + 毛玻璃 */
+  .topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(246, 241, 231, .94);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    margin: -18px -16px 16px;
+    padding: 12px 16px 10px;
+  }
+  .topbar-right { gap: 10px; }
+
+  /* 底部导航：毛玻璃 + 黄色指示条 */
+  .bottomnav {
+    background: rgba(255, 254, 249, .93);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    padding-top: 8px;
+    box-shadow: 0 -6px 20px rgba(25, 28, 34, .1);
+  }
+  .bn-btn { position: relative; padding: 7px 2px; }
+  .bn-btn::before {
+    content: "";
+    position: absolute;
+    top: -8px; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 4px;
+    border-radius: 0 0 5px 5px;
+    background: transparent;
+    transition: background .15s;
+  }
+  .bn-btn.active { background: transparent; }
+  .bn-btn.active::before { background: var(--yellow); }
+  .bn-btn svg { width: 22px; height: 22px; }
+  .bn-btn span { font-size: 10px; }
+
+  /* 弹窗 → 底部抽屉（从底部滑上来，更好按）
+     不加入场动画：个别省电环境会把动画冻在第一帧，导致弹窗停在中途 */
+  dialog.dlg {
+    position: fixed;
+    left: 0; right: 0; bottom: 0; top: auto;
+    margin: 0;
+    width: 100%;
+    max-width: none;
+    border-radius: 22px 22px 0 0;
+    border-bottom: 0;
+    box-shadow: 0 -10px 32px rgba(25, 28, 34, .3);
+    max-height: 86vh;
+    overflow: auto;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* 触感加大 */
+  .task-row { padding: 13px 14px; }
+  .ck { width: 28px; height: 28px; }
+  .habit-row { padding: 13px 14px; }
+  .stat-num { font-size: 25px; }
+  .stat-card { padding: 14px 14px; min-height: 0; }
+  .stat-ic { width: 30px; height: 30px; margin-bottom: 8px; }
+  .grid-overview .card, .habits-grid .card { padding: 16px; border-radius: 14px; }
+  .r-main b { font-size: 15.5px; }
+  .r-time { font-size: 12.5px; }
+
+  .toast { bottom: calc(100px + env(safe-area-inset-bottom, 0px)); }
+}
+
+@media (max-width: 560px) {
+  .grid-overview { gap: 12px; }
+}
+
+/* ════════════════════════════════════════
    v2 新增：考试倒计时 / 习惯打卡 / 小花园
    ════════════════════════════════════════ */
 
